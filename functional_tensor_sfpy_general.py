@@ -3000,7 +3000,7 @@ def store_bin_register_file(name_file, RF_thread):
 
 
 
-
+# python functional_tensor_sfpy_general.py output_folder FP16 disabled 0 0x4000 sa0 0 0
 def main():
 
 	parser = argparse.ArgumentParser()
