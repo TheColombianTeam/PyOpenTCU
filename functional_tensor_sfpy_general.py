@@ -761,20 +761,28 @@ class tensor_buffer(object):
 
 	def print_buffers(self):
 		print("************************************")
+		print('A0')
 		print(self.A0_buffer)
 		print("------------")
+		print('A1')
 		print(self.A1_buffer)
 		print("------------")
+		print('B0')
 		print(self.B0_buffer)
 		print("------------")
+		print('B1')
 		print(self.B1_buffer)
 		print("------------")
+		print('C0')
 		print(self.C0_buffer)
 		print("------------")
+		print('C1')
 		print(self.C1_buffer)
 		print("------------")
+		print('C00')
 		print(self.C00_buffer)
 		print("------------")
+		print('C11')
 		print(self.C11_buffer)
 		print("************************************")
 	
@@ -846,6 +854,7 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 		value2 = Posit16(A[pointer_j_a][pointer_i_a + 1])
         
 	RF_x.RF_write( source_regA,[value1, value2])
+	print('SourceA: {}\nValue: [{}, {}]'.format(source_regA, value1, value2))
 
 	if FI_format == "FP16":
 
@@ -858,6 +867,8 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 		value22 = Posit16(A[pointer_j_a][pointer_i_a + 3])
     
 	RF_x.RF_write( source_regA + 1,[value11, value22])
+	print('SourceA: {}\nValue: [{}, {}]'.format(source_regA, value11, value22))
+
 	
 	
 #	print("filling register file:")
@@ -875,6 +886,8 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 		value222 = Posit16(B[1 + pointer_j_b][pointer_i_b])
 
 	RF_x.RF_write( source_regB,[value111, value222])
+	print('SourceB: {}\nValue: [{}, {}]'.format(source_regB, value111, value222))
+
 
 	if FI_format == "FP16":
 		value1111 = Float16(B[2 + pointer_j_b][pointer_i_b])
@@ -886,6 +899,8 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 
 	
 	RF_x.RF_write( source_regB + 1,[value1111, value2222])
+	print('SourceB: {}\nValue: [{}, {}]'.format(source_regB, value1111, value2222))
+
 
 	if enable_c == 1: 
 
@@ -899,6 +914,8 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 			value2c = Posit16(C[pointer_j_c ][pointer_i_c + 1])
 		
 		RF_x.RF_write( source_regC,[value1c, value2c])
+		print('SourceC: {}\nValue: [{}, {}]'.format(source_regC, value1c, value2c))
+
 
 		if FI_format == "FP16":		
 			value1x = Float16(C[pointer_j_c ][pointer_i_c + 2])
@@ -909,6 +926,8 @@ def fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, point
 			value2x = Posit16(C[pointer_j_c ][pointer_i_c + 3])
             	
 		RF_x.RF_write( source_regC + 1,[value1x, value2x])
+		print('SourceC: {}\nValue: [{}, {}]'.format(source_regC, value1x, value2x))
+
 	
 # ----------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------	
@@ -1031,12 +1050,18 @@ def fill_full_RF(RF_thread, A, B, C, total_threads_per_warp, instrutions_source_
 		
 	#	print("storing data for " + str(thread_id))
 		
+		print('PointerA: \n[{}, {}]'.format(pointer_j_a, pointer_i_a))
+		print('PointerB: \n[{}, {}]'.format(pointer_j_b, pointer_i_b))
+		print('PointerC: \n[{}, {}]'.format(pointer_j_c, pointer_i_c))
 		enable_c = 1
 		#   HMMA R4, R22, R12, R4 (load instruction)
 		fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, pointer_i_c, pointer_j_c, RF_thread[thread_id], A, B, C, instrutions_source_destiny_lists[1], instrutions_source_destiny_lists[2], instrutions_source_destiny_lists[3], enable_c)
 		pointer_i_a = pointer_i_a + 4
 		pointer_j_b = pointer_j_b + 4
 		pointer_i_c = pointer_i_c + 4
+		print('PointerA: \n[{}, {}]'.format(pointer_j_a, pointer_i_a))
+		print('PointerB: \n[{}, {}]'.format(pointer_j_b, pointer_i_b))
+		print('PointerC: \n[{}, {}]'.format(pointer_j_c, pointer_i_c))
 
 #		print(pointer_i_a, pointer_j_b, pointer_i_c, pointer_j_a)
 
@@ -1045,6 +1070,9 @@ def fill_full_RF(RF_thread, A, B, C, total_threads_per_warp, instrutions_source_
 		fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, pointer_i_c, pointer_j_c, RF_thread[thread_id], A, B, C, instrutions_source_destiny_lists[5], instrutions_source_destiny_lists[6], instrutions_source_destiny_lists[7], enable_c)
 		pointer_i_a = pointer_i_a + 4
 		pointer_j_b = pointer_j_b + 4
+		print('PointerA: \n[{}, {}]'.format(pointer_j_a, pointer_i_a))
+		print('PointerB: \n[{}, {}]'.format(pointer_j_b, pointer_i_b))
+		print('PointerC: \n[{}, {}]'.format(pointer_j_c, pointer_i_c))
 
 
 #		print(pointer_i_a, pointer_j_b, pointer_i_c, pointer_j_a)
@@ -1054,6 +1082,9 @@ def fill_full_RF(RF_thread, A, B, C, total_threads_per_warp, instrutions_source_
 		fill_RF(FI_format, pointer_i_a, pointer_j_a, pointer_i_b, pointer_j_b, pointer_i_c, pointer_j_c, RF_thread[thread_id], A, B, C, instrutions_source_destiny_lists[9], instrutions_source_destiny_lists[10], instrutions_source_destiny_lists[11], enable_c)
 		pointer_i_a = pointer_i_a + 4
 		pointer_j_b = pointer_j_b + 4
+		print('PointerA: \n[{}, {}]'.format(pointer_j_a, pointer_i_a))
+		print('PointerB: \n[{}, {}]'.format(pointer_j_b, pointer_i_b))
+		print('PointerC: \n[{}, {}]'.format(pointer_j_c, pointer_i_c))
 
 #		print(pointer_i_a, pointer_j_b, pointer_i_c, pointer_j_a)
 
@@ -1078,7 +1109,9 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 		pointer_storage = 1
 		
 	pointer_tensor_buffer = (thread_group % 4)	# this pointer defines the addressing tensor buffer according to the octets.	
+	print('Tensor buffer pointer {}'.format(pointer_tensor_buffer))
 
+	print('Instruction sources\n{}'.format(instruction_sources))
 	if instruction_number %2 == 0:
 
 		for i in range (0, 4):		# this is the size (4) of the thread group.
@@ -1088,7 +1121,7 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 
 			address = "a_" + str(i) + "0"
 			value = values[0]															# The first of the operands
-
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
 	#		address = "a_" + str(thread_group % total_thread_groups) + str(thread_group % 4)
 
 			tensor_buffer_list[pointer_tensor_buffer].buffer_A_write(address, value, pointer_storage)
@@ -1096,6 +1129,7 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "a_" + str(i) + "1"
 			value = values[1]															# The second of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_A_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
 
 
 			values = RF_thread[thread_group*4 + i].RF_read(instruction_sources[1] + 1)		# implicit register from the same thread
@@ -1103,10 +1137,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "a_" + str(i) + "2"
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_A_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "a_" + str(i) + "3"
 			value = values[1]															# The second of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_A_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 			
 			# Four values of the thread are correctly load into the buffer locations.
 		
@@ -1115,10 +1153,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "b_0" + str(i)
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_B_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "b_1" + str(i)
 			value = values[1]															# The first of the operands		
 			tensor_buffer_list[pointer_tensor_buffer].buffer_B_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 
 			values = RF_thread[thread_group*4 + i].RF_read(instruction_sources[2] + 1)		# implicit register from the same thread
@@ -1126,10 +1168,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "b_2" + str(i)
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_B_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "b_3" + str(i)
 			value = values[1]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_B_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 
 			values = RF_thread[thread_group*4 + i].RF_read(instruction_sources[3])		# implicit register from the same thread
@@ -1137,10 +1183,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "c_" + str(i) + "0"
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_C_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "c_" + str(i) + "1"
 			value = values[1]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_C_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 
 			values = RF_thread[thread_group*4 + i].RF_read(instruction_sources[3] + 1)		# implicit register from the same thread
@@ -1148,10 +1198,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "c_" + str(i) + "2"
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_C_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "c_" + str(i) + "3"
 			value = values[1]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_C_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 			
 	if instruction_number %2 == 1:
 
@@ -1163,10 +1217,14 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "c_" + str(i) + "0"
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_Cx_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "c_" + str(i) + "1"
 			value = values[1]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_Cx_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 
 			values = RF_thread[thread_group*4 + i].RF_read(instruction_sources[3] + 1)		# implicit register from the same thread
@@ -1174,11 +1232,13 @@ def fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, instruction_
 			address = "c_" + str(i) + "2"
 			value = values[0]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_Cx_write(address, value, pointer_storage)
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
+
 
 			address = "c_" + str(i) + "3"
 			value = values[1]															# The first of the operands
 			tensor_buffer_list[pointer_tensor_buffer].buffer_Cx_write(address, value, pointer_storage)
-		
+			print('Address {}\nValues {}\nPointer {}'.format(address, values, pointer_tensor_buffer))
 		
 	return tensor_buffer_list
 	
@@ -1384,7 +1444,9 @@ def volta_execution(tensor_buffer_list, thread_group, instruction, RF_thread, se
 
 
 	pointer_tensor_buffer = (thread_group % 4)	# this pointer defines the addressing tensor buffer according to the octets.
-
+	print('Thread group {}'.format(thread_group))
+	print('Pointer tensor {}'.format(pointer_tensor_buffer))
+	print('Instruction {}'.format(instruction))
 
 	# ask for the instruction even or odd to select the sources in the thread groups
 
@@ -2438,8 +2500,19 @@ def volta_execution(tensor_buffer_list, thread_group, instruction, RF_thread, se
 
 		C33 = tensor_buffer_list[pointer_tensor_buffer].buffer_Cx_read("c_33", 1)
 
-		# ---------------------------------------------------------------------------
+	print('A\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n'.format(
+		A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16
+	))
 
+	print('B\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n'.format(
+		B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13,B14,B15,B16
+	))
+
+	print('C\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n'.format(
+		C00,C01,C02,C03,C10,C11,C12,C13,C20,C21,C22,C23,C30,C31,C32,C33
+	))
+
+		# ---------------------------------------------------------------------------
 	# Each Tensor_element module is based on the dot product unit (described in the patent)
 	
 	# Execution of the tensor:
@@ -2518,29 +2591,27 @@ def volta_execution(tensor_buffer_list, thread_group, instruction, RF_thread, se
 
 
 
-	if debug_mode == 1:
+	print("values on the tensor units:")
 
-		print("values on the tensor units:")
-
-		print(w_003, A1, B1, C00)
-		print(w_013, A2, B2, C01)
-		print(w_023, A3, B3, C02)
-		print(w_033, A4, B4, C03)
-		
-		print(w_103, A5, B5, C10)
-		print(w_113, A6, B6, C11)
-		print(w_123, A7, B7, C12)
-		print(w_133, A8, B8, C13)
-		
-		print(w_203, A9, B9, C20)
-		print(w_213, A10, B10, C21)
-		print(w_223, A11, B11, C22)
-		print(w_233, A12, B12, C23)
-		
-		print(w_303, A13, B13, C30)
-		print(w_313, A14, B14, C31)
-		print(w_323, A15, B16, C32)
-		print(w_333, A16, B16, C33)
+	print(w_003, A1, B1, C00)
+	print(w_013, A2, B2, C01)
+	print(w_023, A3, B3, C02)
+	print(w_033, A4, B4, C03)
+	
+	print(w_103, A5, B5, C10)
+	print(w_113, A6, B6, C11)
+	print(w_123, A7, B7, C12)
+	print(w_133, A8, B8, C13)
+	
+	print(w_203, A9, B9, C20)
+	print(w_213, A10, B10, C21)
+	print(w_223, A11, B11, C22)
+	print(w_233, A12, B12, C23)
+	
+	print(w_303, A13, B13, C30)
+	print(w_313, A14, B14, C31)
+	print(w_323, A15, B16, C32)
+	print(w_333, A16, B16, C33)
 	
 	# storing the results for the next instruction or thread group.
 	
@@ -3127,7 +3198,7 @@ def main():
 	instrutions_source_destiny_lists.append(10)  # B
 	instrutions_source_destiny_lists.append(6)   # C
 
-
+	print('Instructions:\n{}'.format(instrutions_source_destiny_lists))
 # Start of function for the movement from memory to RFs
 
 
@@ -3204,6 +3275,11 @@ def main():
 				
 				# replace the instruction source destiny list by the values coming from the extracted instructions.
 				tensor_buffer_list = fill_tensor_buffer(tensor_buffer_list, thread_group, RF_thread, set_of_HMMA_instructions[instruction], instruction)
+				
+				print('Original')
+				for buffer in tensor_buffer_list:
+					print('--------------------------')
+					buffer.print_buffers()
 
 				if debug_mode == 1:
 					tensor_buffer_list[0].print_buffers()
@@ -3260,6 +3336,7 @@ def main():
 		if len(words) > 2: 					# It means, is the line to be read
 		
 			if (int(words[0]) == 4) or (int(words[0]) == 5) or (int(words[0]) == 6) or (int(words[0]) == 7):
+				print('Words: {}'.format(words))
 				
 				clean = words[2].replace(',','')
 				flat_list.append(clean)
@@ -3267,12 +3344,12 @@ def main():
 				
 				if (int(words[0]) == 7):
 					dictionar[key] = flat_list
+					print('Flat list {}, Key {}'.format(flat_list, key))
 					
 		else:
 			
 			key = int(words[1])
 			flat_list = list()
-
 
 	print(dictionar)			
 	

@@ -1,7 +1,8 @@
+import os
 import numpy as np
+from sfpy import *
 
-
-from common import HMMA_INTS, debug_print
+from common import debug_print, HMMA_INTS, SOURCE_INTS
 from config import config
 
 
@@ -21,6 +22,7 @@ class Tensor(FaultInjector):
         self._register_files = []
         self._tensor_buffer = []
         self._output_tensor_buffer = []
+        self._d = []
         self._init_registers()
 
     def mul(self, a, b, c):
@@ -39,18 +41,81 @@ class Tensor(FaultInjector):
             debug_print('======>>> executing instruction: {}'.format(instruction))
             for thread_group in range(self._thread_groups):
                 self._fill_tensor_buffer(thread_group, HMMA_INTS[instruction], instruction)
-                debug_print(self._tensor_buffer[0])
-                d = self._execution(a, b, c)
-        return d
+                for idx, tensor_buffer in enumerate(self._tensor_buffer):
+                    debug_print('Tensor Buffer Data Before {}\n{}'.format(
+                            idx,
+                            tensor_buffer
+                        )
+                    )
+                self._execution(a, b, c, thread_group, instruction)
+        for register, register_file in enumerate(self._register_files):
+            debug_print('Register File After {}\n{}'.format(
+                    register,
+                    register_file
+                )
+            )
+        self._d = self._read_result()
+        return self._d
+    
+    def save_files(self):
+        if not os.path.isdir('outputs'):
+            os.mkdir('outputs')
+        for idx, tensor_buffer in enumerate(self._tensor_buffer):
+            filename = 'outputs/tensor_buffer_{}.txt'.format(idx)
+            tensor_buffer.store(filename)
+        for idx, register_file in enumerate(self._register_files):
+            filename = 'outputs/register_file_{}.txt'.format(idx)
+            register_file.store(filename)
+        datafile = open('outputs/result.txt', 'w')
+        for row in self._d:
+            for column in row:
+                datafile.write('{}\n'.format(column))
+        datafile.close()
 
-    def _execution(self, a, b, c):
+
+    def _read_result(self):
+        data = []
+        for register, register_file in enumerate(self._register_files):
+            data.append([])
+            for line in range(4):
+                data[register].extend(register_file.rf_read(line + 4))
+        matrix = np.zeros([16, 16])
+        for thread_id in range(self._threads_per_warp):
+            if thread_id < 4:
+                for i in range(8):
+                    matrix[thread_id][i] = data[thread_id][i]
+            elif thread_id < 8:
+                for i in range(8):
+                    matrix[thread_id + 4][i] = data[thread_id][i]
+            elif thread_id < 12:
+                for i in range(8):
+                    matrix[thread_id - 8][i + 8] = data[thread_id][i]
+            elif thread_id < 16:
+                for i in range(8):
+                    matrix[thread_id - 4][i + 8] = data[thread_id][i]
+            elif thread_id < 20:
+                for i in range(8):
+                    matrix[thread_id - 12][i] = data[thread_id][i]
+            elif thread_id < 24:
+                for i in range(8):
+                    matrix[thread_id - 8][i] = data[thread_id][i]
+            elif thread_id < 28:
+                for i in range(8):
+                    matrix[thread_id - 20][i + 8] = data[thread_id][i]
+            else:
+                for i in range(8):
+                    matrix[thread_id - 16][i + 8] = data[thread_id][i]
+        
+        return matrix
+
+    def _execution(self, a, b, c, thread_group, inst):
         switcher = {
             'volta': self._volta,
             'pascal': self._pascal,
             'turing': self._turing
         }
         func = switcher.get(self._arch, lambda: [])
-        return func(a, b, c)
+        return func(a, b, c, thread_group, inst)
     
     def _fill_register_files(self, a, b, c):
         pointer = [
@@ -138,7 +203,7 @@ class Tensor(FaultInjector):
         
             enable_c = True
 
-            source = HMMA_INTS[0][1:]
+            source = SOURCE_INTS[0][1:]
             debug_print('Pointers1:\n {}\n'.format(pointer))
             debug_print('Source1:\n {}\n'.format(source))
             self._register_files[thread_id].fill(
@@ -149,7 +214,8 @@ class Tensor(FaultInjector):
             pointer[1][1] += 4
             pointer[2][0] += 4
 
-            source = HMMA_INTS[1][1:]
+            source = SOURCE_INTS[1][1:]
+            debug_print('Pointers2:\n {}\n'.format(pointer))
             debug_print('Source2:\n {}\n'.format(source))
             self._register_files[thread_id].fill(
                 a, b, c, pointer, source, enable_c
@@ -159,7 +225,7 @@ class Tensor(FaultInjector):
             pointer[1][1] += 4
 
             enable_c = False
-            source = HMMA_INTS[2][1:]
+            source = SOURCE_INTS[2][1:]
             debug_print('Pointers3:\n {}\n'.format(pointer))
             debug_print('Source3:\n {}\n'.format(source))
             self._register_files[thread_id].fill(
@@ -169,8 +235,7 @@ class Tensor(FaultInjector):
             pointer[0][0] += 4
             pointer[1][1] += 4
 
-
-            source = HMMA_INTS[3][1:]
+            source = SOURCE_INTS[3][1:]
             debug_print('Pointers4:\n {}\n'.format(pointer))
             debug_print('Source4:\n {}\n'.format(source))
             self._register_files[thread_id].fill(
@@ -198,12 +263,14 @@ class Tensor(FaultInjector):
         )
         pointer_storage = 0 if thread_group < 4 else 1
         pointer_tensor_buffer = thread_group % 4
-        debug_print('Instruction sources\n{}'.format(instruction_sources))
+        debug_print('Instruction sources {}'.format(instruction_sources))
+        debug_print('Tensor buffer pointer {}'.format(pointer_tensor_buffer))
+
         for i in range(4):
             if instruction_number % 2 == 0:
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[1])
                 address = 'a_{}0'.format(i)
-                debug_print('Values:\n1:{}\n2:{}\n'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -224,7 +291,7 @@ class Tensor(FaultInjector):
 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[1] + 1)
                 address = 'a_{}2'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -245,7 +312,7 @@ class Tensor(FaultInjector):
                 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[2])
                 address = 'b_0{}'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -266,7 +333,7 @@ class Tensor(FaultInjector):
 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[2] + 1)
                 address = 'b_2{}'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -287,7 +354,7 @@ class Tensor(FaultInjector):
 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3])
                 address = 'c_{}0'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -308,7 +375,7 @@ class Tensor(FaultInjector):
 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3] + 1)
                 address = 'c_{}2'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -329,7 +396,7 @@ class Tensor(FaultInjector):
             if instruction_number % 2 == 1:
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3])
                 address = 'c_{}0'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -350,7 +417,7 @@ class Tensor(FaultInjector):
 
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3] + 1)
                 address = 'c_{}2'.format(i)
-                debug_print('Values:\n1:\n{}2:\n{}'.format(values[0], values[1]))
+                debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
@@ -384,10 +451,101 @@ class Tensor(FaultInjector):
         w3 = self._fma_core(a[3], b[3], w2)
         return w3
     
-    def _volta(self, a, b, c):
-        pass
+    def _volta(self, a, b, c, thread_group, inst):
+        pointer_tensor_buffer = thread_group % 4
+
+        debug_print('Thread group {}'.format(thread_group))
+        debug_print('Pointer Tensor Buffer {}'.format(pointer_tensor_buffer))
+        debug_print('Instruction {}'.format(inst))
+
+        A = np.zeros([16, 4])
+        B = np.zeros([16, 4])
+        C = np.zeros(16)
+        W = np.zeros([4, 4])
+
+        if inst % 2 == 0 and thread_group < 4:
+            buffer_c_des = 0
+            buffer_c_group = 0
+            pointer_a = 0
+            pointer_b = 0
+            pointer_c = 0
+        elif inst % 2 == 1 and thread_group < 4:
+            buffer_c_des = 0
+            buffer_c_group = 1
+            pointer_a = 0
+            pointer_b = 1
+            pointer_c = 0
+        elif inst % 2 == 0 and thread_group >= 4:
+            buffer_c_des = 1
+            buffer_c_group = 0
+            pointer_a = 1
+            pointer_b = 0
+            pointer_c = 1
+        elif inst % 2 == 1 and thread_group >= 4:
+            buffer_c_des = 1
+            buffer_c_group = 1
+            pointer_a = 1
+            pointer_b = 1
+            pointer_c = 1
+
+        for k in range(4):
+            for i in range(4):
+                for j in range(4):
+                    A[k * 4 + i][j] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
+                        'A',
+                        'a_{}{}'.format(k, j),
+                        pointer_a
+                    )
+                    B[k * 4 + i][j] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
+                        'B',
+                        'b_{}{}'.format(j, i),
+                        pointer_b
+                    )
+                C[k * 4 + i] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
+                    'C',
+                    'c_{}{}'.format(k, i),
+                    pointer_c
+                )
+        
+        debug_print('A execution:\n{}'.format(A))
+        debug_print('B execution:\n{}'.format(B))
+        debug_print('C execution:\n{}'.format(C))
+
+        for k in range(4):
+            for i in range(4):
+                W[k][i] = self._dot_product(
+                    A[k * 4 + i],
+                    B[k * 4 + i],
+                    C[k * 4 + i]
+                )
+        debug_print('Values on the tensor units:\n{}'.format(W))
+
+        for i in range(4):
+                for j in range(4):
+                    if buffer_c_group == 0:
+                        self._tensor_buffer[pointer_tensor_buffer].buffer_write(
+                            'C',
+                            'c_{}{}'.format(i, j),
+                            W[i][j],
+                            buffer_c_des
+                        )
+                    elif buffer_c_group == 1:
+                        self._tensor_buffer[pointer_tensor_buffer].buffer_write(
+                            'CX',
+                            'c_{}{}'.format(i, j),
+                            W[i][j],
+                            buffer_c_des
+                        )
+
+        for i in range(4):
+            for j in range(2):
+                data = [W[i][j * 2], W[i][j * 2 + 1]]
+                self._register_files[thread_group * 4 + i].rf_write(
+                    HMMA_INTS[inst][0] + j,
+                    data
+                )
     
-    def _pascal(self, a, b, c):
+    def _pascal(self, a, b, c, thread_group):
         w = [ [0.0] * 16 ] * 16
         d = [ [0.0] * 16 ] * 16
 
@@ -413,7 +571,7 @@ class Tensor(FaultInjector):
 
         return d
     
-    def _turing(self, a,  b,  c, n):
+    def _turing(self, a,  b,  c, thread_group, n):
         d = []
         for i in range(4):
             for j in range(4):
@@ -426,25 +584,18 @@ class Tensor(FaultInjector):
             raise Exception(
                 'Error using the tensor element...'
             )
-        sum = 0.0
-        for i in range(len(a)):
-            sum += a[i] * b[i]
-        return sum + c
+        dot_products = np.zeros([4])
+        for i in range(4):
+            dot_products[i] = a[i] * b[i]
+        return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + c
 
 def load_from_file(matrix, file_object, n):
-
     i = 0
-
     for line in file_object:
-
         words = line.split()
-
         for j in range (0, n):
-
-            matrix[i][j] = words[j]
-
+            matrix[i][j] = Float16(words[j])
         i = i+1
-
     return matrix
 
 n = 16
@@ -457,6 +608,8 @@ c = load_from_file(np.zeros([n, n]), file_C, n)
 
 tensor = Tensor()
 d = tensor.mul(a, b, c)
-d_real = np.matmul(a, b)
-print(d)
-print(d_real)
+tensor.save_files()
+print('++++++++++++++++++')
+for row in d:
+    for column in row:
+        print(column)

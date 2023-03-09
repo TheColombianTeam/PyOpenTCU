@@ -6,7 +6,7 @@ from common import debug_print
 
 class RegisterFile():
     def __init__(self):
-        self._mem = [0] * 16 * 16
+        self._mem = [0] * 24
     
     def rf_write(
             self,
@@ -17,8 +17,6 @@ class RegisterFile():
         self._mem[address] = value
 
     def rf_read(self, address):
-        if not address in self._mem:
-            return hex(0)
         return self._mem[address]
     
     def get_addresses(self):
@@ -39,6 +37,11 @@ class RegisterFile():
                 value1 = c[pointer[2][1]][pointer[2][0] + i * 2]
                 value2 = c[pointer[2][1]][pointer[2][0] + i * 2 + 1]
                 self.rf_write(source[2] + i, [value1, value2])
+    
+    def store(self, filename) -> None:
+        file = open(filename, 'w')
+        file.write(self.__str__())
+        file.close()
 
     def __str__(self):
         info = '***********************************\n'

@@ -21,8 +21,7 @@ class TensorBuffer():
             value,
             pointer
         ):
-        id = '0' if pointer == 0 else '1'
-        key = '{}{}'.format(buffer, id)
+        key = '{}{}'.format(buffer, pointer)
         self._buffer[key][address] = value
 
     def read_buffer(
@@ -31,12 +30,7 @@ class TensorBuffer():
             address,
             pointer
         ):
-        id = '0' if pointer == 0 else '1'
-        key = '{}{}'.format(buffer, id)
-        if not address in self._buffer[key]:
-            raise Exception(
-                'Register file location not initializated'
-            )
+        key = '{}{}'.format(buffer, pointer)
         return self._buffer[key][address]
 
     def store(self, filename) -> None:
