@@ -18,6 +18,7 @@ class Tensor(FaultInjector):
         self._threads_per_warp: int = int(config_parameters['threads_per_warp'])
         self._total_tensor_buffer: int = int(config_parameters['tensor_buffer'])
         self._thread_groups: int = int(config_parameters['thread_groups'])
+        self._type: str = config_parameters['type'].lower()
         self._arch: str = config_parameters['arch'].lower()
         self._register_files = []
         self._tensor_buffer = []
@@ -47,7 +48,7 @@ class Tensor(FaultInjector):
                             tensor_buffer
                         )
                     )
-                self._execution(a, b, c, thread_group, instruction)
+                self._execution(thread_group, instruction)
         for register, register_file in enumerate(self._register_files):
             debug_print('Register File After {}\n{}'.format(
                     register,
@@ -108,14 +109,14 @@ class Tensor(FaultInjector):
         
         return matrix
 
-    def _execution(self, a, b, c, thread_group, inst):
+    def _execution(self, thread_group, inst):
         switcher = {
             'volta': self._volta,
             'pascal': self._pascal,
             'turing': self._turing
         }
         func = switcher.get(self._arch, lambda: [])
-        return func(a, b, c, thread_group, inst)
+        return func(thread_group, inst)
     
     def _fill_register_files(self, a, b, c):
         pointer = [
@@ -451,7 +452,7 @@ class Tensor(FaultInjector):
         w3 = self._fma_core(a[3], b[3], w2)
         return w3
     
-    def _volta(self, a, b, c, thread_group, inst):
+    def _volta(self, thread_group, inst):
         pointer_tensor_buffer = thread_group % 4
 
         debug_print('Thread group {}'.format(thread_group))
@@ -584,17 +585,23 @@ class Tensor(FaultInjector):
             raise Exception(
                 'Error using the tensor element...'
             )
-        dot_products = np.zeros([4])
-        for i in range(4):
-            dot_products[i] = a[i] * b[i]
-        return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + c
+        if self._type == 'float16':
+            dot_products = np.zeros([4], dtype=Float16)
+            for i in range(4):
+                dot_products[i] = Float16(a[i]) * Float16(b[i])
+            return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Float16(c)
+        else:
+            dot_products = np.zeros([4], dtype=Posit16)
+            for i in range(4):
+                dot_products[i] = Posit16(a[i]) * Posit16(b[i])
+            return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Posit16(c)
 
 def load_from_file(matrix, file_object, n):
     i = 0
     for line in file_object:
         words = line.split()
         for j in range (0, n):
-            matrix[i][j] = Float16(words[j])
+            matrix[i][j] = words[j]
         i = i+1
     return matrix
 
