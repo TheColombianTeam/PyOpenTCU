@@ -12,8 +12,10 @@ from TensorBuffer import TensorBuffer
 
 
 class Tensor(FaultInjector):
-    def __init__(self):
+    def __init__(self, fault_id=None):
         super().__init__()
+        if not fault_id == None:
+            self.enable_fault(fault_id)
         config_parameters = config()['DEFAULT']
         self._threads_per_warp: int = int(config_parameters['threads_per_warp'])
         self._total_tensor_buffer: int = int(config_parameters['tensor_buffer'])
@@ -512,14 +514,19 @@ class Tensor(FaultInjector):
         debug_print('B execution:\n{}'.format(B))
         debug_print('C execution:\n{}'.format(C))
 
+        A, B, C = self.input_fault_inject(A, B, C, thread_group)
+
         for k in range(4):
             for i in range(4):
                 W[k][i] = self._dot_product(
                     A[k * 4 + i],
                     B[k * 4 + i],
-                    C[k * 4 + i]
+                    C[k * 4 + i],
+                    thread_group
                 )
         debug_print('Values on the tensor units:\n{}'.format(W))
+
+        W = self.output_fault_inject(W, thread_group)
 
         for i in range(4):
                 for j in range(4):
@@ -580,7 +587,7 @@ class Tensor(FaultInjector):
         
         return d
     
-    def _dot_product(self, a,  b,  c):
+    def _dot_product(self, a,  b,  c, thread_group):
         if not len(a) == len(b):
             raise Exception(
                 'Error using the tensor element...'
@@ -589,34 +596,11 @@ class Tensor(FaultInjector):
             dot_products = np.zeros([4], dtype=Float16)
             for i in range(4):
                 dot_products[i] = Float16(a[i]) * Float16(b[i])
+                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, i)
             return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Float16(c)
         else:
             dot_products = np.zeros([4], dtype=Posit16)
             for i in range(4):
                 dot_products[i] = Posit16(a[i]) * Posit16(b[i])
+                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, i)
             return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Posit16(c)
-
-def load_from_file(matrix, file_object, n):
-    i = 0
-    for line in file_object:
-        words = line.split()
-        for j in range (0, n):
-            matrix[i][j] = words[j]
-        i = i+1
-    return matrix
-
-n = 16
-file_A = open('inputs/A.txt', "r")
-file_B = open('inputs/B.txt', "r")
-file_C = open('inputs/C.txt', "r")
-a = load_from_file(np.zeros([n, n]), file_A, n)
-b = load_from_file(np.zeros([n, n]), file_B, n)
-c = load_from_file(np.zeros([n, n]), file_C, n)
-
-tensor = Tensor()
-d = tensor.mul(a, b, c)
-tensor.save_files()
-print('++++++++++++++++++')
-for row in d:
-    for column in row:
-        print(column)
