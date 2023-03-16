@@ -42,7 +42,7 @@ def exhaustive():
                                     fault_temp = '{},{},{},{},{}\n'.format(
                                         FAULTTARGET[target],
                                         thread_group,
-                                        '{}-{}'.format(input, row),
+                                        '{}-{}'.format(row, column),
                                         hex(2 ** bit),
                                         FAULTTYPE[type]
                                     )

@@ -130,3 +130,5 @@ dmypy.json
 
 # Results folder
 /outputs
+/faults/*.npy
+/faults/*.txt
