@@ -522,7 +522,8 @@ class Tensor(FaultInjector):
                     A[k * 4 + i],
                     B[k * 4 + i],
                     C[k * 4 + i],
-                    thread_group
+                    thread_group,
+                    k, i
                 )
         debug_print('Values on the tensor units:\n{}'.format(W))
 
@@ -587,7 +588,7 @@ class Tensor(FaultInjector):
         
         return d
     
-    def _dot_product(self, a,  b,  c, thread_group):
+    def _dot_product(self, a,  b,  c, thread_group, x, y):
         if not len(a) == len(b):
             raise Exception(
                 'Error using the tensor element...'
@@ -596,11 +597,11 @@ class Tensor(FaultInjector):
             dot_products = np.zeros([4], dtype=Float16)
             for i in range(4):
                 dot_products[i] = Float16(a[i]) * Float16(b[i])
-                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, i)
+                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, x, y, i)
             return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Float16(c)
         else:
             dot_products = np.zeros([4], dtype=Posit16)
             for i in range(4):
                 dot_products[i] = Posit16(a[i]) * Posit16(b[i])
-                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, i)
+                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, x, y, i)
             return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Posit16(c)

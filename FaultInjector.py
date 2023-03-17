@@ -83,13 +83,16 @@ class FaultInjector():
                     c[int(position[1])] = value
         return a, b, c
 
-    def interconnection_fault_inject(self, value, thread_group, interconnection):
+    def interconnection_fault_inject(self, value, thread_group, interconnection_x, interconnection_y, acc):
         if self._fault_enable and self._fault[0] == FAULTTARGET['INTERCONECCTIONS']:
             if self._fault[1] == str(thread_group):
-                if self._fault[2] == str(interconnection):
+                fault = self._fault[2].split('-')
+                if fault[0] == str(interconnection_x) and fault[1] == str(interconnection_y) and fault[2] == str(acc):
                     value_injected = self._inject_fault(value)
-                    debug_print('Interconnection[{}]: Expected Value {}, Injected value {}'.format(
-                        interconnection,
+                    debug_print('Interconnection[{},{},{}]: Expected Value {}, Injected value {}'.format(
+                        interconnection_x,
+                        interconnection_y,
+                        acc,
                         value,
                         value_injected
                     ))
