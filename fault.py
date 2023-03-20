@@ -16,7 +16,6 @@ def save_file(faults, filename):
 def exhaustive():
     faults = []
     targets = FAULTTARGET.keys()
-    targets = filter(lambda target: target != 'INTERCONECCTIONS', targets)
     for target in targets:
         for thread_group in range(TOTAL_THREAD_GROUP):
             if target == 'INPUT':
@@ -36,13 +35,28 @@ def exhaustive():
                                         faults.append(fault_temp)
             elif target == 'OUTPUT':
                 for row in range(4):
-                        for column in range(4):
+                    for column in range(4):
+                        for bit in range(16):
+                            for type in FAULTTYPE.keys():
+                                fault_temp = '{},{},{},{},{}\n'.format(
+                                    FAULTTARGET[target],
+                                    thread_group,
+                                    '{}-{}'.format(row, column),
+                                    hex(2 ** bit),
+                                    FAULTTYPE[type]
+                                )
+                                if not fault_temp in faults:
+                                    faults.append(fault_temp)
+            else:
+                for row in range(4):
+                    for column in range(4):
+                        for interconnection in range(4):
                             for bit in range(16):
                                 for type in FAULTTYPE.keys():
                                     fault_temp = '{},{},{},{},{}\n'.format(
                                         FAULTTARGET[target],
                                         thread_group,
-                                        '{}-{}'.format(row, column),
+                                        '{}-{}-{}'.format(row, column, interconnection),
                                         hex(2 ** bit),
                                         FAULTTYPE[type]
                                     )
