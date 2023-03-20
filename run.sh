@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-set -e
 DIR=`pwd`
 DIR_RESULTS=${DIR}/faults
 FAULTS_FILE=${DIR_RESULTS}/fault.csv
 FAULTS=$(cat $FAULTS_FILE)
 
-for matrix in 9
+for matrix in 0 1 2 3 4 5 6 7 8 9
 do
-    #echo "target_fault,target_thread_group_fault,position_fault,mask_fault,type_fault,position,golden_data,mask_golden,faulty_data,mask_faulty,mask,error_relative,error_abs" > ${DIR_RESULTS}/results_$matrix.csv
-    IDX=48570
-    #python sim.py None run > ${DIR_RESULTS}/golden_$matrix.txt
+    echo "target_fault,target_thread_group_fault,position_fault,mask_fault,type_fault,position,golden_data,mask_golden,faulty_data,mask_faulty,mask,error_relative,error_abs" > ${DIR_RESULTS}/results_$matrix.csv
+    IDX=0
+    python sim.py None run > ${DIR_RESULTS}/golden_$matrix.txt
     for fault in $FAULTS
     do
         echo "Matrix: $matrix, Fault: $IDX"
