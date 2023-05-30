@@ -121,10 +121,11 @@ if __name__ == '__main__':
     args = deco_arg()
     idx = None if args.fault == 'None' else int(args.fault)
     tensor = Tensor(idx)
-    a = np.random.rand(300, 100)
-    b = np.random.rand(100, 300)
-    c = np.random.rand(300, 300)
+    a = np.random.rand(300, 100).astype(Float16)
+    b = np.random.rand(100, 300).astype(Float16)
+    c = np.random.rand(300, 300).astype(Float16)
     d = np.matmul(a, b) + c
+    d = d.astype(Float16)
     c_ = scheduler(a, b, c, d, tensor)
 
     for i, row in enumerate(c_):
