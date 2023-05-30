@@ -9,6 +9,9 @@ do
     echo "target_fault,target_thread_group_fault,position_fault,mask_fault,type_fault,position,golden_data,mask_golden,faulty_data,mask_faulty,mask,error_relative,error_abs" > ${DIR_RESULTS}/results_$matrix.csv
     IDX=0
     python sim.py None run > ${DIR_RESULTS}/golden_$matrix.txt
+    cp ${DIR_RESULTS}/a.npy ${DIR_RESULTS}/a_$matrix.npy
+    cp ${DIR_RESULTS}/b.npy ${DIR_RESULTS}/b_$matrix.npy
+    cp ${DIR_RESULTS}/c.npy ${DIR_RESULTS}/c_$matrix.npy
     for fault in $FAULTS
     do
         echo "Matrix: $matrix, Fault: $IDX"

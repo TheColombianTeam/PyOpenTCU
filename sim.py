@@ -95,37 +95,75 @@ def read_results(idx):
             data = line.split('|')
             golden = data[0].strip().split(':')
             faulty = data[1].strip().split(':')
-            if type == 'float16':
-                golden_format = Float16(golden[1])
-                faulty_format = Float16(faulty[1])
-                golden_data = golden_format
-                faulty_data = faulty_format
-                mask_golden = golden_format.from_bits(int(golden[2], 16))
-                mask_faulty = faulty_format.from_bits(int(faulty[2], 16))
-            else:
-                golden_format = Posit16(golden[1])
-                faulty_format = Posit16(faulty[1])
-                golden_data = golden_format
-                faulty_data = faulty_format
-                mask_golden = golden_format.from_bits(int(golden[2], 16))
-                mask_faulty = faulty_format.from_bits(int(faulty[2], 16))
-            mask_golden_bits = mask_golden.bits
-            mask_faulty_bits = mask_faulty.bits
-            mask = mask_golden_bits ^ mask_faulty_bits
-            error_relative = relative_error(golden_format, faulty_format)
-            error_abs = abs_error(golden_format, faulty_format)
-            print('{},{},{},{},{},{},{},{},{}'.format(
-                    fault.split('\n')[0],
-                    golden[0],
-                    golden_data,
-                    hex(mask_golden_bits),
-                    faulty_data,
-                    hex(mask_faulty_bits),
-                    hex(mask), 
-                    error_relative, 
-                    error_abs
+            try:
+            # if not is internal data
+                aux = int(golden[0])
+                if type == 'float16':
+                    golden_format = Float16(golden[1])
+                    faulty_format = Float16(faulty[1])
+                    golden_data = golden_format
+                    faulty_data = faulty_format
+                    mask_golden = golden_format.from_bits(int(golden[2], 16))
+                    mask_faulty = faulty_format.from_bits(int(faulty[2], 16))
+                else:
+                    golden_format = Posit16(golden[1])
+                    faulty_format = Posit16(faulty[1])
+                    golden_data = golden_format
+                    faulty_data = faulty_format
+                    mask_golden = golden_format.from_bits(int(golden[2], 16))
+                    mask_faulty = faulty_format.from_bits(int(faulty[2], 16))
+                mask_golden_bits = mask_golden.bits
+                mask_faulty_bits = mask_faulty.bits
+                mask = mask_golden_bits ^ mask_faulty_bits
+                error_relative = relative_error(golden_format, faulty_format)
+                error_abs = abs_error(golden_format, faulty_format)
+                print('{},{},{},{},{},{},{},{},{}'.format(
+                        fault.split('\n')[0],
+                        golden[0],
+                        golden_data,
+                        hex(mask_golden_bits),
+                        faulty_data,
+                        hex(mask_faulty_bits),
+                        hex(mask), 
+                        error_relative, 
+                        error_abs
+                    )
                 )
-            )
+            except:
+                # Analysis internal data 
+                # C:15:-:1.8251953125:0x3f4d
+                # W:3:3:1.505859375:0x3e06
+                if type == 'float16':
+                    golden_format = Float16(golden[3])
+                    faulty_format = Float16(faulty[3])
+                    golden_data = golden_format
+                    faulty_data = faulty_format
+                    mask_golden = golden_format.from_bits(int(golden[4], 16))
+                    mask_faulty = faulty_format.from_bits(int(faulty[4], 16))
+                else:
+                    golden_format = Posit16(golden[3])
+                    faulty_format = Posit16(faulty[3])
+                    golden_data = golden_format
+                    faulty_data = faulty_format
+                    mask_golden = golden_format.from_bits(int(golden[4], 16))
+                    mask_faulty = faulty_format.from_bits(int(faulty[4], 16))
+                mask_golden_bits = mask_golden.bits
+                mask_faulty_bits = mask_faulty.bits
+                mask = mask_golden_bits ^ mask_faulty_bits
+                error_relative = relative_error(golden_format, faulty_format)
+                error_abs = abs_error(golden_format, faulty_format)
+                print('{},{},{},{},{},{},{},{},{}'.format(
+                        fault.split('\n')[0],
+                        '{}_{}_{}'.format(golden[0], golden[1], golden[2]),
+                        golden_data,
+                        hex(mask_golden_bits),
+                        faulty_data,
+                        hex(mask_faulty_bits),
+                        hex(mask), 
+                        error_relative, 
+                        error_abs
+                    )
+                )
 
 
 def identify_fault(idx):
@@ -151,7 +189,7 @@ if __name__ == '__main__':
     if process == 'run':
         if idx == None:
             a = np.random.rand(16, 16)
-            b = np.random.rand(16, 16)
+            b = np.tril(np.random.rand(16, 16), -1)
             c = np.random.rand(16, 16)
             golden_simulation(a, b, c)
         else:

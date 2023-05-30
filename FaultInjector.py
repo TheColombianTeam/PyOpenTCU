@@ -81,6 +81,9 @@ class FaultInjector():
                         value
                     ))
                     c[int(position[1])] = value
+        self._internal_values(a, 'A', 16, 4)
+        self._internal_values(b, 'B', 16, 4)
+        self._internal_values(c, 'C', 16)
         return a, b, c
 
     def interconnection_fault_inject(self, value, thread_group, interconnection_x, interconnection_y, acc):
@@ -111,6 +114,7 @@ class FaultInjector():
                     value
                 ))
                 w[int(position[0])][int(position[1])] = value
+        self._internal_values(w, 'W', 4, 4)
         return w
 
     def _inject_fault(self, value):
@@ -130,3 +134,37 @@ class FaultInjector():
             output = input_bits | mask_bits
         result = input_format.from_bits(output)
         return result
+
+    def _internal_values(self, a, name, rows, columns=0):
+        for row in range(rows):
+            if not columns == 0:
+                for column in range(columns):
+                    value = a[row][column]
+                    if self._type_data == 'float16':
+                        input_format = Float16(value)
+                    else:
+                        input_format = Posit16(value)
+                    value_bits = input_format.bits
+                    value_hex = hex(value_bits)
+                    print('{}:{}:{}:{}:{}'.format(
+                        name,
+                        row,
+                        column,
+                        value,
+                        value_hex
+                    ))
+            else:
+                value = a[row]
+                if self._type_data == 'float16':
+                    input_format = Float16(value)
+                else:
+                    input_format = Posit16(value)
+                value_bits = input_format.bits
+                value_hex = hex(value_bits)
+                print('{}:{}:{}:{}:{}'.format(
+                    name,
+                    row,
+                    '-',
+                    value,
+                    value_hex
+                ))
