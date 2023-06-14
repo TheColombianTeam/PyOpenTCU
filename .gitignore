@@ -132,3 +132,8 @@ dmypy.json
 /outputs
 /faults/*.npy
 /faults/*.txt
+
+# sfpy
+/sfpy
+
+.DS_Store

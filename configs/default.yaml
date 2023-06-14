@@ -1,0 +1,12 @@
+name: posit16 # name of the experiment needed for the logs
+
+faults:
+  dir: ./faults # number of training iterations with total_batch size
+
+config:
+  format: posit16
+
+tensor:
+  num_tcu: 2
+  tcu:
+    dpu: 16

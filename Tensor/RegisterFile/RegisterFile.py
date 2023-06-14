@@ -1,19 +1,9 @@
-import numpy as np
 
-
-from common import debug_print
-
-
-class RegisterFile():
+class RegisterFile(object):
     def __init__(self):
         self._mem = [0] * 24
     
-    def rf_write(
-            self,
-            address,
-            value
-        ):
-        debug_print('Address: {}\nValue:{}'.format(address, value))
+    def rf_write(self, address, value):
         self._mem[address] = value
 
     def rf_read(self, address):

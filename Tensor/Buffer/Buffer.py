@@ -1,7 +1,5 @@
-import numpy as np
 
-
-class TensorBuffer():
+class Buffer(object):
     def __init__(self):
         self._buffer = {
             'A0': {},
@@ -14,22 +12,11 @@ class TensorBuffer():
             'CX1': {}
         }
     
-    def buffer_write(
-            self,
-            buffer,
-            address,
-            value,
-            pointer
-        ):
+    def buffer_write(self, buffer, address, value, pointer):
         key = '{}{}'.format(buffer, pointer)
         self._buffer[key][address] = value
 
-    def read_buffer(
-            self,
-            buffer,
-            address,
-            pointer
-        ):
+    def read_buffer(self, buffer, address, pointer):
         key = '{}{}'.format(buffer, pointer)
         return self._buffer[key][address]
 

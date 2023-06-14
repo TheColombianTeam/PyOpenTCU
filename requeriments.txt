@@ -1,2 +1,4 @@
 numpy==1.24.2
 sfpy==0.6.0
+omegaconf==2.3.0
+coloredlogs==15.0.1
