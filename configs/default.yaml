@@ -1,12 +1,16 @@
 name: posit16 # name of the experiment needed for the logs
 
 faults:
-  dir: ./faults # number of training iterations with total_batch size
+  dir: ./faults # path needed for the fault campaing
 
 config:
   format: posit16
 
 tensor:
+  arch: 'volta'
   num_tcu: 2
+  threads_per_warp: 32
+  num_buffers: 4
+  num_thread_groups: 8
   tcu:
     dpu: 16

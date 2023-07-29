@@ -1,609 +1,253 @@
 import os
-import numpy as np
-from sfpy import *
-
-from common import debug_print, HMMA_INTS, SOURCE_INTS
-from config import config
+from typing import List
 
 
-from FaultInjector import FaultInjector
-from Tensor.RegisterFile.RegisterFile import RegisterFile
-from Tensor.Buffer.Buffer import Buffer as TensorBuffer
-
-from Tensor import TCU
+from Tensor.hw import HMMA_INTS, SOURCE_INTS
+from utils.args import args
+from utils.formats import CustomData
 
 
-class Tensor(FaultInjector):
-    def __init__(self, fault_id=None):
-        super().__init__()
-        if not fault_id == None:
-            self.enable_fault(fault_id)
-        config_parameters = config()['DEFAULT']
-        self._threads_per_warp: int = int(config_parameters['threads_per_warp'])
-        self._total_tensor_buffer: int = int(config_parameters['tensor_buffer'])
-        self._thread_groups: int = int(config_parameters['thread_groups'])
-        self._type: str = config_parameters['type'].lower()
-        self._arch: str = config_parameters['arch'].lower()
-        self._register_files = []
-        self._tensor_buffer = []
-        self._output_tensor_buffer = []
-        self._d = []
-        self._init_registers()
-
-    def mul(self, a, b, c):
-        debug_print(
-            'Matrix A:\n{}\nMatrix B:\n{}\nMatrix C:\n{}'
-            .format(a, b, c)
-        )
-        self._fill_register_files(a, b, c)
-        for register, register_file in enumerate(self._register_files):
-            debug_print('Register file {}\n{}'.format(
-                register,
-                register_file
-            ))
-        debug_print('Starting tensor operation')
-        for instruction in range(len(HMMA_INTS)):
-            debug_print('======>>> executing instruction: {}'.format(instruction))
-            for thread_group in range(self._thread_groups):
-                self._fill_tensor_buffer(thread_group, HMMA_INTS[instruction], instruction)
-                for idx, tensor_buffer in enumerate(self._tensor_buffer):
-                    debug_print('Tensor Buffer Data Before {}\n{}'.format(
-                            idx,
-                            tensor_buffer
-                        )
-                    )
-                self._execution(thread_group, instruction)
-        for register, register_file in enumerate(self._register_files):
-            debug_print('Register File After {}\n{}'.format(
-                    register,
-                    register_file
-                )
-            )
-        self._d = self._read_result()
-        return self._d
-    
-    def save_files(self):
-        if not os.path.isdir('outputs'):
-            os.mkdir('outputs')
-        for idx, tensor_buffer in enumerate(self._tensor_buffer):
-            filename = 'outputs/tensor_buffer_{}.txt'.format(idx)
-            tensor_buffer.store(filename)
-        for idx, register_file in enumerate(self._register_files):
-            filename = 'outputs/register_file_{}.txt'.format(idx)
-            register_file.store(filename)
-        datafile = open('outputs/result.txt', 'w')
-        for row in self._d:
-            for column in row:
-                datafile.write('{}\n'.format(column))
-        datafile.close()
+from Tensor import Buffer, RegisterFile, TCU
 
 
-    def _read_result(self):
-        data = []
-        for register, register_file in enumerate(self._register_files):
-            data.append([])
-            for line in range(4):
-                data[register].extend(register_file.rf_read(line + 4))
-        matrix = np.zeros([16, 16])
-        for thread_id in range(self._threads_per_warp):
-            if thread_id < 4:
-                for i in range(8):
-                    matrix[thread_id][i] = data[thread_id][i]
-            elif thread_id < 8:
-                for i in range(8):
-                    matrix[thread_id + 4][i] = data[thread_id][i]
-            elif thread_id < 12:
-                for i in range(8):
-                    matrix[thread_id - 8][i + 8] = data[thread_id][i]
-            elif thread_id < 16:
-                for i in range(8):
-                    matrix[thread_id - 4][i + 8] = data[thread_id][i]
-            elif thread_id < 20:
-                for i in range(8):
-                    matrix[thread_id - 12][i] = data[thread_id][i]
-            elif thread_id < 24:
-                for i in range(8):
-                    matrix[thread_id - 8][i] = data[thread_id][i]
-            elif thread_id < 28:
-                for i in range(8):
-                    matrix[thread_id - 20][i + 8] = data[thread_id][i]
-            else:
-                for i in range(8):
-                    matrix[thread_id - 16][i + 8] = data[thread_id][i]
-        
-        return matrix
+class TensorCore(object):
+    def __init__(self):
+        self.__arch: str = args.tensor.arch.lower()
+        self.__threads_per_warp: int = args.tensor.threads_per_warp
+        self.__num_tcus: int = args.tensor.num_tcu
+        self.__num_buffers: int = args.tensor.num_buffers
+        self.__num_thread_groups: int = args.tensor.num_thread_groups
+        self.__tcus: List[TCU] = []
+        self.__buffers: List[Buffer] = []
+        self.__output_buffers: List[Buffer] = []
+        self.__RFs: List[RegisterFile] = []
+        self.__a: List[List[CustomData]] = []
+        self.__b: List[List[CustomData]] = []
+        self.__c: List[CustomData] = []
+        self.__d: List[List[CustomData]] = []
+        self.__build()
 
-    def _execution(self, thread_group, inst):
+    def mul(self):
+        self.__validate_operator()
+        self.__fill_RFs()
+        self.__execution()
+
+
+    def __execution(self):
         switcher = {
-            'volta': self._volta,
-            'pascal': self._pascal,
-            'turing': self._turing
+            'volta': self.__volta
         }
-        func = switcher.get(self._arch, lambda: [])
-        return func(thread_group, inst)
-    
-    def _fill_register_files(self, a, b, c):
+        func = switcher.get(self.__arch)
+        return func()
+
+    def __volta(self):
+        for idx_inst, inst in enumerate(HMMA_INTS):
+            # TODO: Parallelize using the number of TCU available
+            # In the default configuration -> 2 TCUs
+            # Thread group 0, 1, 4, 5 -> TCU 0
+            # Thread group 2, 3, 6, 7 -> TCU 1
+            for thread_group in range(self.__num_thread_groups):
+                self.__execution(thread_group, idx_inst, inst)
+                self.__fill_tensor_buffer(thread_group, inst, idx_inst)
+
+                pointer_tensor_buffer = thread_group % 4
+                A = [ [ None ] * 4 ] * 16
+                B = [ [ None ] * 4 ] * 16
+                C = [ None ] * 16
+                D = [ [ None ] * 4 ] * 4
+                
+                odd_inst = idx_inst % 2
+
+                pointer_a = 1 if not odd_inst and thread_group >= 4 else 0
+                pointer_b = 0 if odd_inst else 1
+                pointer_c = 0 if thread_group < 4 else 1
+
+                for k in range(4):
+                    for i in range(4):
+                        for j in range(4):
+                            A[k * 4 + i][j] = self.__buffers[pointer_tensor_buffer].read_buffer(
+                                'A',
+                                'a_{}{}'.format(k, j),
+                                pointer_a
+                            )
+                            B[k * 4 + i][j] = self.__buffers[pointer_tensor_buffer].read_buffer(
+                                'B',
+                                'b_{}{}'.format(j, i),
+                                pointer_b
+                            )
+                        C[k * 4 + i] = self.__buffers[pointer_tensor_buffer].read_buffer(
+                            'C',
+                            'c_{}{}'.format(k, i),
+                            pointer_c
+                        )
+                
+                for k in range(4):
+                    for i in range(4):
+                        # TODO: use the TCU unit
+                        D[k][i] = self._dot_product(
+                            A[k * 4 + i],
+                            B[k * 4 + i],
+                            C[k * 4 + i],
+                            thread_group,
+                            k, i
+                        )
+
+                buffer_c_des = 0 if thread_group < 4 else 1
+                buffer_c_group = 'C' if odd_inst else 'CX'
+
+                for i in range(4):
+                    for j in range(4):
+                        self.__buffers[pointer_tensor_buffer].buffer_write(
+                            buffer_c_group,
+                            'c_{}{}'.format(i, j),
+                            D[i][j],
+                            buffer_c_des
+                        )
+                
+                for i in range(4):
+                    for j in range(2):
+                        data = [D[i][j * 2], D[i][j * 2 + 1]]
+                        self.__RFs[thread_group * 4 + i].rf_write(
+                            inst[0] + j,
+                            data
+                        )
+
+    def __validate_operator(self):
+        if len(self.__a) == 0 or len(self.__b) == 0 or len(self.__c) == 0:
+            raise Exception('The operands (A, B, and C) must be initializated')
+        
+    def __fill_tensor_buffer(
+            self,
+            thread_group: int,
+            inst_sources: List[int],
+            inst: int
+        ):
+        pointer_storage = 0 if thread_group < 4 else 0
+        pointer_tensor_buffer = thread_group % 4
+
+        for op in range(4):
+            if inst % 2:
+                for i in range(1, 4):
+                    addres_ = 'a' if i == 1 else 'b' if i == 2 else 'c'
+                    for y in range(2):
+                        values = self.__RFs[thread_group * 4 + op].rf_read(
+                            inst_sources[i] + y
+                        )
+
+                        for z in range(2):
+                            address = '{}_{}{}'.format(addres_, op, y * 2 + z)
+
+                            self.__buffers[pointer_tensor_buffer].buffer_write(
+                                addres_.upper(),
+                                address,
+                                values[z],
+                                pointer_storage
+                            )
+            else:
+                for i in range(2):
+                    values = self.__RFs[thread_group * 4 + op].rf_read(
+                        inst_sources[3] + i
+                    )
+
+                    for y in range(2):
+                        address = 'c_{}{}'.format(op, i * 2 + y)
+
+                        self.__buffers[pointer_tensor_buffer].buffer_write(
+                            'C',
+                            address,
+                            values[y],
+                            pointer_storage
+                        )
+  
+    def __build(self):
+        switcher = {
+            'volta': self.__volta
+        }
+        func = switcher.get(self.__arch)
+        if not func:
+            raise NotImplemented(
+                'The {} arch has not been implemented'.format(self.__arch)
+            )
+        for i in range(self.__num_tcus):
+            self.__tcus.append(TCU(i))
+        for _ in range(self.__num_buffers):
+            self.__buffers.append(Buffer())
+            self.__output_buffers.append(Buffer())
+        for _ in range(self.__threads_per_warp):
+            self.__RFs.append(RegisterFile())
+
+    def __fill_RFs(self):
         pointer = [
             [0, 0],
             [0, 0],
             [0, 0]
         ]
-        debug_print('Filling the register file on the GPU core')
-        if self._threads_per_warp > 32:
-            raise Exception('Error addressing the RF and locate operands')
-        for thread_id in range(self._threads_per_warp):
-            debug_print('Storing data for {} thread\n'.format(thread_id))
-            if thread_id < 4:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id
 
-                pointer[1][0] = thread_id
-                pointer[1][1] = 0
+        pointer_ = [
+            [0,  0,  0,  0,   0,   0,   0,   0], # [0][0]
+            [0,  4, -8, -4, -12,  -8, -20, -16], # [0][1]
+            [0, -4,  0, -4, -12, -16, -12, -16], # [1][0]
+            [0,  0,  0,  0,   0,   0,   0,   0], # [1][1]
+            [0,  0,  8,  8,   0,   0,   8,   0], # [2][0]
+            [0,  4, -8, -4, -12,  -8, -20, -16]  # [2][1]
+        ]
 
-                pointer[2][0] = 0
-                pointer[2][1] = thread_id
-            elif thread_id < 8:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id + 4
-
-                pointer[1][0] = thread_id - 4
-                pointer[1][1] = 0
-
-                pointer[2][0] = 0
-                pointer[2][1] = thread_id + 4
-            elif thread_id < 12:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 8
-
-                pointer[1][0] = thread_id
-                pointer[1][1] = 0
-
-                pointer[2][0] = 8
-                pointer[2][1] = thread_id - 8
-            elif thread_id < 16:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 4
-
-                pointer[1][0] = thread_id - 4
-                pointer[1][1] = 0
-
-                pointer[2][0] = 8
-                pointer[2][1] = thread_id - 4
-            elif thread_id < 20:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 12
-
-                pointer[1][0] = thread_id -12
-                pointer[1][1] = 0
-
-                pointer[2][0] = 0
-                pointer[2][1] = thread_id - 12
-            elif thread_id < 24:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 8
-
-                pointer[1][0] = thread_id - 16
-                pointer[1][1] = 0
-
-                pointer[2][0] = 0
-                pointer[2][1] = thread_id - 8
-            elif thread_id < 28:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 20
-
-                pointer[1][0] = thread_id - 12
-                pointer[1][1] = 0
-
-                pointer[2][0] = 8
-                pointer[2][1] = thread_id - 20
-            else:
-                pointer[0][0] = 0
-                pointer[0][1] = thread_id - 16
-
-                pointer[1][0] = thread_id - 16
-                pointer[1][1] = 0
-
-                pointer[2][0] = 8
-                pointer[2][1] = thread_id - 16
-        
-            enable_c = True
-
-            source = SOURCE_INTS[0][1:]
-            debug_print('Pointers1:\n {}\n'.format(pointer))
-            debug_print('Source1:\n {}\n'.format(source))
-            self._register_files[thread_id].fill(
-                a, b, c, pointer, source, enable_c
-            )
-
-            pointer[0][0] += 4
-            pointer[1][1] += 4
-            pointer[2][0] += 4
-
-            source = SOURCE_INTS[1][1:]
-            debug_print('Pointers2:\n {}\n'.format(pointer))
-            debug_print('Source2:\n {}\n'.format(source))
-            self._register_files[thread_id].fill(
-                a, b, c, pointer, source, enable_c
-            )
-
-            pointer[0][0] += 4
-            pointer[1][1] += 4
-
-            enable_c = False
-            source = SOURCE_INTS[2][1:]
-            debug_print('Pointers3:\n {}\n'.format(pointer))
-            debug_print('Source3:\n {}\n'.format(source))
-            self._register_files[thread_id].fill(
-                a, b, c, pointer, source, enable_c
-            )
-
-            pointer[0][0] += 4
-            pointer[1][1] += 4
-
-            source = SOURCE_INTS[3][1:]
-            debug_print('Pointers4:\n {}\n'.format(pointer))
-            debug_print('Source4:\n {}\n'.format(source))
-            self._register_files[thread_id].fill(
-                a, b, c, pointer, source, enable_c
-            )
-
-
-    def _init_registers(self):
-        for _ in range(self._threads_per_warp):
-            self._register_files.append(RegisterFile())
-        for _ in range(self._total_tensor_buffer):
-            self._tensor_buffer.append(TensorBuffer())
-            self._output_tensor_buffer.append(TensorBuffer())
-
-    
-    def _fill_tensor_buffer(
-            self,
-            thread_group,
-            instruction_sources,
-            instruction_number
-        ):
-        debug_print(
-            'Starting filling tensor buffer {} thread group'
-            .format(thread_group)
-        )
-        pointer_storage = 0 if thread_group < 4 else 1
-        pointer_tensor_buffer = thread_group % 4
-        debug_print('Instruction sources {}'.format(instruction_sources))
-        debug_print('Tensor buffer pointer {}'.format(pointer_tensor_buffer))
-
-        for i in range(4):
-            if instruction_number % 2 == 0:
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[1])
-                address = 'a_{}0'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'A',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'a_{}1'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'A',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[1] + 1)
-                address = 'a_{}2'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'A',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'a_{}3'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'A',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-                
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[2])
-                address = 'b_0{}'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'B',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'b_1{}'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'B',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[2] + 1)
-                address = 'b_2{}'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'B',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'b_3{}'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'B',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3])
-                address = 'c_{}0'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'c_{}1'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3] + 1)
-                address = 'c_{}2'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'c_{}3'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-            if instruction_number % 2 == 1:
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3])
-                address = 'c_{}0'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'c_{}1'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-                values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3] + 1)
-                address = 'c_{}2'.format(i)
-                debug_print('Values: {}'.format(values))
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[0],
-                    pointer_storage
-                )
-                address = 'c_{}3'.format(i)
-                debug_print('Address {}'.format(address))
-                debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
-                self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                    'C',
-                    address,
-                    values[1],
-                    pointer_storage
-                )
-
-    def _fma_core(self, a, b, c):
-        return a * b + c
-    
-    def _tensor_ele(self,a, b, c, n):
-        w0, w1, w2, w3 = 0.0, 0.0, 0.0, 0.0
-        if len(a) > n and len(b) > n:
-            raise Exception(
-                'Error using the tensor element...'
-            )
-        w0 = self._fma_core(a[0], b[0], c)
-        w1 = self._fma_core(a[1], b[1], w0)
-        w2 = self._fma_core(a[2], b[2], w1)
-        w3 = self._fma_core(a[3], b[3], w2)
-        return w3
-    
-    def _volta(self, thread_group, inst):
-        pointer_tensor_buffer = thread_group % 4
-
-        debug_print('Thread group {}'.format(thread_group))
-        debug_print('Pointer Tensor Buffer {}'.format(pointer_tensor_buffer))
-        debug_print('Instruction {}'.format(inst))
-
-        if inst % 2 == 0 and thread_group < 4:
-            buffer_c_des = 0
-            buffer_c_group = 0
-            pointer_a = 0
-            pointer_b = 0
-            pointer_c = 0
-        elif inst % 2 == 1 and thread_group < 4:
-            buffer_c_des = 0
-            buffer_c_group = 1
-            pointer_a = 0
-            pointer_b = 1
-            pointer_c = 0
-        elif inst % 2 == 0 and thread_group >= 4:
-            buffer_c_des = 1
-            buffer_c_group = 0
-            pointer_a = 1
-            pointer_b = 0
-            pointer_c = 1
-        elif inst % 2 == 1 and thread_group >= 4:
-            buffer_c_des = 1
-            buffer_c_group = 1
-            pointer_a = 1
-            pointer_b = 1
-            pointer_c = 1
-
-        A = np.zeros([16, 4])
-        B = np.zeros([16, 4])
-        C = np.zeros(16)
-        W = np.zeros([4, 4])
-
-        for k in range(4):
-            for i in range(4):
-                for j in range(4):
-                    A[k * 4 + i][j] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
-                        'A',
-                        'a_{}{}'.format(k, j),
-                        pointer_a
-                    )
-                    B[k * 4 + i][j] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
-                        'B',
-                        'b_{}{}'.format(j, i),
-                        pointer_b
-                    )
-                C[k * 4 + i] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
-                    'C',
-                    'c_{}{}'.format(k, i),
-                    pointer_c
-                )
-        
-        debug_print('A execution:\n{}'.format(A))
-        debug_print('B execution:\n{}'.format(B))
-        debug_print('C execution:\n{}'.format(C))
-
-        A, B, C = self.input_fault_inject(A, B, C, thread_group)
-
-        for k in range(4):
-            for i in range(4):
-                W[k][i] = self._dot_product(
-                    A[k * 4 + i],
-                    B[k * 4 + i],
-                    C[k * 4 + i],
-                    thread_group,
-                    k, i
-                )
-        debug_print('Values on the tensor units:\n{}'.format(W))
-
-        W = self.output_fault_inject(W, thread_group)
-
-        for i in range(4):
-                for j in range(4):
-                    if buffer_c_group == 0:
-                        self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                            'C',
-                            'c_{}{}'.format(i, j),
-                            W[i][j],
-                            buffer_c_des
-                        )
-                    elif buffer_c_group == 1:
-                        self._tensor_buffer[pointer_tensor_buffer].buffer_write(
-                            'CX',
-                            'c_{}{}'.format(i, j),
-                            W[i][j],
-                            buffer_c_des
-                        )
-
-        for i in range(4):
-            for j in range(2):
-                data = [W[i][j * 2], W[i][j * 2 + 1]]
-                self._register_files[thread_group * 4 + i].rf_write(
-                    HMMA_INTS[inst][0] + j,
-                    data
-                )
-    
-    def _pascal(self, a, b, c, thread_group):
-        w = [ [0.0] * 16 ] * 16
-        d = [ [0.0] * 16 ] * 16
-
-        debug_print('A: {}\nB: {}\nC: {}'.format(a[0][0], b[0][0], c[0][0]))
-        w[0][0] = self._fma_core(a[0][0], b[0][0], c[0][0])
-        w[0][1] = self._fma_core(a[0][0], b[0][1], c[0][1])
-        w[0][2] = self._fma_core(a[0][0], b[0][2], c[0][2])
-        w[0][3] = self._fma_core(a[0][0], b[0][3], c[0][3])
-
-        for k in range(4):
-            for i in range(1, 4):
-                for j in range(4):
-                    w[i][j] = self._fma_core(a[0][i], b[i][j], w[i-1][j])
-                    w[i][j] = self._fma_core(a[0][i], b[i][j], w[i-1][j])
-                    w[i][j] = self._fma_core(a[0][i], b[i][j], w[i-1][j])
-                    w[i][j] = self._fma_core(a[0][i], b[i][j], w[i-1][j])
+        for thread_per_warp in range(self.__threads_per_warp):
+            idx = thread_per_warp // 4
+            pointer[0][0] = 0
+            pointer[0][1] = thread_per_warp + pointer_[1][idx]
+            pointer[1][0] = thread_per_warp + pointer_[2][idx]
+            pointer[1][1] = 0
+            pointer[2][0] = pointer_[4][idx]
+            pointer[2][1] = thread_per_warp + pointer_[5][idx]
 
             for i in range(4):
-                d[k][i] = w[3][i]
-                d[k][i] = w[3][i]
-                d[k][i] = w[3][i]
-                d[k][i] = w[3][i]
+                source = SOURCE_INTS[i][1:]
 
-        return d
+                enable_c = not i // 2
+
+                self.__RFs[thread_per_warp].fill(
+                    self.__a,
+                    self.__b,
+                    self.__c,
+                    pointer,
+                    source,
+                    enable_c
+                )
+
+                pointer[0][0] += 4
+                pointer[1][1] += 4
+
+                if i == 0:
+                    pointer[2][0] += 4
     
-    def _turing(self, a,  b,  c, thread_group, n):
-        d = []
-        for i in range(4):
-            for j in range(4):
-                d[i][j] = self._tensor_ele(a[i], b[j], c[i][j], n)
-        
-        return d
+    @property
+    def a(self) -> List[List[CustomData]]:
+        return self.__a
     
-    def _dot_product(self, a,  b,  c, thread_group, x, y):
-        if not len(a) == len(b):
-            raise Exception(
-                'Error using the tensor element...'
-            )
-        if self._type == 'float16':
-            dot_products = np.zeros([4], dtype=Float16)
-            for i in range(4):
-                dot_products[i] = Float16(a[i]) * Float16(b[i])
-                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, x, y, i)
-            return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Float16(c)
-        else:
-            dot_products = np.zeros([4], dtype=Posit16)
-            for i in range(4):
-                dot_products[i] = Posit16(a[i]) * Posit16(b[i])
-                dot_products[i] = self.interconnection_fault_inject(dot_products[i], thread_group, x, y, i)
-            return dot_products[0] + dot_products[1] + dot_products[2] + dot_products[3] + Posit16(c)
+    @a.setter
+    def a(self, a:List[List[CustomData]]):
+        assert len(a) == 4, ValueError
+        self.__a = a
+
+    @property
+    def b(self) -> List[List[CustomData]]:
+        return self.__b
+    
+    @b.setter
+    def b(self, b:List[List[CustomData]]):
+        assert len(b) == 4, ValueError
+        self.__b = b
+
+    @property
+    def c(self) -> List[CustomData]:
+        return self.__c
+    
+    @c.setter
+    def c(self, c:List[CustomData]):
+        assert len(c) == 4, ValueError
+        self.__c = c
+    
+    @property
+    def d(self) -> List[List[CustomData]]:
+        return self.__d
