@@ -8,8 +8,10 @@ def setup_logger(name, logfile=None):
     i_handler.setLevel(logging.INFO)
     logger_instance.addHandler(i_handler)
     coloredlogs.install(
-        level='DEBUG', logger=logger_instance,
-        fmt='%(asctime)s %(name)s %(levelname)s %(message)s')
+        level="DEBUG",
+        logger=logger_instance,
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+    )
     return logger_instance
 
 
@@ -18,11 +20,8 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    logger.error(
-        'Uncaught exception',
-        exc_info=(exc_type, exc_value, exc_traceback)
-    )
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 sys.excepthook = handle_exception
-logger = setup_logger('LOG', args.logfile)
+logger = setup_logger("LOG", args.logfile)

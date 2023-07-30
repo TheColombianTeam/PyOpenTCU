@@ -1,38 +1,36 @@
-
 class Buffer(object):
     def __init__(self):
         self._buffer = {
-            'A0': {},
-            'A1': {},
-            'B0': {},
-            'B1': {},
-            'C0': {},
-            'C1': {},
-            'CX0': {},
-            'CX1': {}
+            "A0": {},
+            "A1": {},
+            "B0": {},
+            "B1": {},
+            "C0": {},
+            "C1": {},
+            "CX0": {},
+            "CX1": {},
         }
-    
+
     def buffer_write(self, buffer, address, value, pointer):
-        key = '{}{}'.format(buffer, pointer)
+        key = "{}{}".format(buffer, pointer)
         self._buffer[key][address] = value
 
     def read_buffer(self, buffer, address, pointer):
-        key = '{}{}'.format(buffer, pointer)
+        key = "{}{}".format(buffer, pointer)
         return self._buffer[key][address]
 
     def store(self, filename) -> None:
-        file = open(filename, 'w')
+        file = open(filename, "w")
         file.write(self.__str__())
         file.close()
-    
+
     def __str__(self):
-        info = '***********************************\n'
+        info = "***********************************\n"
         for buffer in self._buffer:
-            info += '{} buffer:\n'.format(buffer)
+            info += "{} buffer:\n".format(buffer)
             for address in self._buffer[buffer]:
-                info += '{} address: {}\n'.format(
-                    address, 
-                    self._buffer[buffer][address]
+                info += "{} address: {}\n".format(
+                    address, self._buffer[buffer][address]
                 )
-            info += '***********************************\n'
+            info += "***********************************\n"
         return info
