@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from common import debug_print
+from .common import debug_print
 
 
 class RegisterFile():

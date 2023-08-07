@@ -2,13 +2,13 @@ import os
 import numpy as np
 from sfpy import *
 
-from common import debug_print, HMMA_INTS, SOURCE_INTS
-from config import config
+from .common import debug_print, HMMA_INTS, SOURCE_INTS
+from .config import config
 
 
-from FaultInjector import FaultInjector
-from RegisterFile import RegisterFile
-from TensorBuffer import TensorBuffer
+from .FaultInjector import FaultInjector
+from .RegisterFile import RegisterFile
+from .TensorBuffer import TensorBuffer
 
 
 class Tensor(FaultInjector):
