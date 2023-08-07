@@ -146,13 +146,6 @@ class FaultInjector():
                         input_format = Posit16(value)
                     value_bits = input_format.bits
                     value_hex = hex(value_bits)
-                    print('{}:{}:{}:{}:{}'.format(
-                        name,
-                        row,
-                        column,
-                        value,
-                        value_hex
-                    ))
             else:
                 value = a[row]
                 if self._type_data == 'float16':
@@ -161,10 +154,3 @@ class FaultInjector():
                     input_format = Posit16(value)
                 value_bits = input_format.bits
                 value_hex = hex(value_bits)
-                print('{}:{}:{}:{}:{}'.format(
-                    name,
-                    row,
-                    '-',
-                    value,
-                    value_hex
-                ))
