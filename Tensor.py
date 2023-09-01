@@ -22,6 +22,7 @@ class Tensor(FaultInjector):
         self._thread_groups: int = int(config_parameters['thread_groups'])
         self._type: str = config_parameters['type'].lower()
         self._arch: str = config_parameters['arch'].lower()
+        self._dpu_arch: str = config_parameters['dpu'].lower()
         self._register_files = []
         self._tensor_buffer = []
         self._output_tensor_buffer = []
@@ -593,6 +594,62 @@ class Tensor(FaultInjector):
             raise Exception(
                 'Error using the tensor element...'
             )
+        if self._dpu_arch == 'tree_adders':
+            return self._tree_adds(a,  b,  c, thread_group, x, y)
+        if self._dpu_arch == 'fma_early':
+            return self._fma_early_accumulate(a,  b,  c, thread_group, x, y)
+        if self._dpu_arch == 'fma_late':
+            return self._fma_late_accumulate(a,  b,  c, thread_group, x, y)
+    
+    def _fma_early_accumulate(self, a,  b,  c, thread_group, x, y):
+        if self._type == 'float16':
+            dot_products = Float16(c)
+            dot_products += Float16(a[0]) * Float16(b[0])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 0)
+            dot_products += Float16(a[1]) * Float16(b[1])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 1)
+            dot_products += Float16(a[2]) * Float16(b[2])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 2)
+            dot_products += Float16(a[3]) * Float16(b[3])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 3)
+            return dot_products
+        else:
+            dot_products =  Posit16(c)
+            dot_products += Posit16(a[0]) * Posit16(b[0])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 0)
+            dot_products += Posit16(a[1]) * Posit16(b[1])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 1)
+            dot_products += Posit16(a[2]) * Posit16(b[2])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 2)
+            dot_products += Posit16(a[3]) * Posit16(b[3])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 3)
+            return dot_products
+
+    def _fma_late_accumulate(self, a,  b,  c, thread_group, x, y):
+        if self._type == 'float16':
+            dot_products = Float16(a[0]) * Float16(b[0])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 0)
+            dot_products += Float16(a[1]) * Float16(b[1])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 1)
+            dot_products += Float16(a[2]) * Float16(b[2])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 2)
+            dot_products += Float16(a[3]) * Float16(b[3])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 3)
+            dot_products += Float16(c)
+            return dot_products
+        else:
+            dot_products = Posit16(a[0]) * Posit16(b[0])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 0)
+            dot_products += Posit16(a[1]) * Posit16(b[1])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 1)
+            dot_products += Posit16(a[2]) * Posit16(b[2])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 2)
+            dot_products += Posit16(a[3]) * Posit16(b[3])
+            dot_products = self.interconnection_fault_inject(dot_products, thread_group, x, y, 3)
+            dot_products += Posit16(c)
+            return dot_products
+
+    def _tree_adds(self, a,  b,  c, thread_group, x, y):
         if self._type == 'float16':
             dot_products = np.zeros([4], dtype=Float16)
             for i in range(4):
