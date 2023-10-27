@@ -277,19 +277,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'A', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'A',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'a_{}1'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'A', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'A',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -298,19 +300,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'A', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'A',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'a_{}3'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'A', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'A',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
                 
@@ -319,19 +323,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'B', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'B',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'b_1{}'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'B', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'B',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -340,19 +346,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'B', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'B',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'b_3{}'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'B', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'B',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -361,19 +369,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'c_{}1'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -382,19 +392,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'c_{}3'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
             if instruction_number % 2 == 1:
@@ -403,19 +415,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'c_{}1'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -424,19 +438,21 @@ class Tensor(FaultInjector):
                 debug_print('Values: {}'.format(values))
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[0])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[0],
+                    faulty,
                     pointer_storage
                 )
                 address = 'c_{}3'.format(i)
                 debug_print('Address {}'.format(address))
                 debug_print('Pointer tensor {}'.format(pointer_tensor_buffer))
+                faulty = self.input_buffers(pointer_tensor_buffer, 'C', address, values[1])
                 self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                     'C',
                     address,
-                    values[1],
+                    faulty,
                     pointer_storage
                 )
 
@@ -500,16 +516,19 @@ class Tensor(FaultInjector):
                         'a_{}{}'.format(k, j),
                         pointer_a
                     )
+                    A[k * 4 + i][j] = self.output_buffers(pointer_tensor_buffer, 'A', 'a_{}{}'.format(k, j), A[k * 4 + i][j])
                     B[k * 4 + i][j] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
                         'B',
                         'b_{}{}'.format(j, i),
                         pointer_b
                     )
+                    B[k * 4 + i][j] = self.output_buffers(pointer_tensor_buffer, 'A', 'a_{}{}'.format(k, j), B[k * 4 + i][j])
                 C[k * 4 + i] = self._tensor_buffer[pointer_tensor_buffer].read_buffer(
                     'C',
                     'c_{}{}'.format(k, i),
                     pointer_c
                 )
+                C[k * 4 + i] = self.output_buffers(pointer_tensor_buffer, 'A', 'a_{}{}'.format(k, j), C[k * 4 + i])
         
         debug_print('A execution:\n{}'.format(A))
         debug_print('B execution:\n{}'.format(B))
@@ -533,17 +552,19 @@ class Tensor(FaultInjector):
         for i in range(4):
                 for j in range(4):
                     if buffer_c_group == 0:
+                        faulty = self.input_buffers(pointer_tensor_buffer, 'C', 'c_{}{}'.format(i, j), W[i][j])                        
                         self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                             'C',
                             'c_{}{}'.format(i, j),
-                            W[i][j],
+                            faulty,
                             buffer_c_des
                         )
                     elif buffer_c_group == 1:
+                        faulty = self.input_buffers(pointer_tensor_buffer, 'CX', 'c_{}{}'.format(i, j), W[i][j])   
                         self._tensor_buffer[pointer_tensor_buffer].buffer_write(
                             'CX',
                             'c_{}{}'.format(i, j),
-                            W[i][j],
+                            faulty,
                             buffer_c_des
                         )
 

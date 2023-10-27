@@ -7,9 +7,9 @@ from .common import debug_print
 
 """
 The fault is composed of:
-    target: input(0), output(1), interconnection(2)
+    target: input(0), output(1), interconnection(2), buffer inputs (3), buffer outputs (4)
     target_thread_group max 8
-    position
+    element
     mask
     type: bf, sa0, sa1
 """
@@ -18,7 +18,9 @@ The fault is composed of:
 FAULTTARGET = {
     'INPUT': '0',
     'OUTPUT': '1',
-    'INTERCONECCTIONS': '2'
+    'INTERCONECCTIONS': '2',
+    'BUFFER_INPUTS': '3',
+    'BUFFER_OUTPUTS': '4'
 }
 
 
@@ -116,6 +118,20 @@ class FaultInjector():
                 w[int(position[0])][int(position[1])] = value
         self._internal_values(w, 'W', 4, 4)
         return w
+    
+    def input_buffers(self, pointer, buffer, address, value):
+        if self._fault_enable and self._fault[0] == FAULTTARGET['BUFFER_INPUTS']:
+            elem = '{}{}{}'.format(buffer, pointer, address.split('_')[-1])
+            if self._fault[2] == elem:
+                value = self._inject_fault(value)
+        return value
+    
+    def output_buffers(self, pointer, buffer, address, value):
+        if self._fault_enable and self._fault[0] == FAULTTARGET['BUFFER_OUTPUTS']:
+            elem = '{}{}{}'.format(buffer, pointer, address.split('_')[-1])
+            if self._fault[2] == elem:
+                value = self._inject_fault(value)
+        return value
 
     def _inject_fault(self, value):
         if self._type_data == 'float16':
