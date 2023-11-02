@@ -41,15 +41,16 @@ class TensorBuffer:
 
 
 class Bank:
-    def __init__(self, data_width=32):
-        self.__registers = [Register() for _ in range(512 // 128)]
+    def __init__(self, data_width=32, memory_size=512):
+        self.__memory_size = memory_size
+        self.__registers = [Register() for _ in range(self.__memory_size // 128)]
         self.__data_width = data_width
 
     def write(self, address, value):
         register, cell, num_cells = self.__convert_address(address)
         for idx in range(num_cells):
             substr = 4 * idx
-            self.__registers[register].write(cell + idx, value[idx:substr])
+            self.__registers[register].write(cell + idx, value[idx * 4 : substr + 4])
 
     def read(self, address):
         register, cell, num_cells = self.__convert_address(address)
@@ -63,12 +64,17 @@ class Bank:
         element = address_0 * 4 + address_1
         num_cells = self.__data_width // 16
         cell_location = element * num_cells
-        register = cell_location // num_cells
-        cell = cell_location % num_cells
-        if register > 3 or cell > 8:
+        register = cell_location // 8
+        cell = cell_location % 8
+        if register > self.__memory_size // 128 or cell > 8:
             raise Exception("Error using the memory element")
         return register, cell, num_cells
-
+    
+    def __str__(self):
+        string = ''
+        for idx, register in enumerate(self.__registers):
+            string += 'Buffer {}:\nRegister:\n{}'.format(idx, register)
+        return string
 
 class Register:
     def __init__(self):
@@ -79,6 +85,12 @@ class Register:
 
     def read(self, address):
         return self.__cells[address].read()
+    
+    def __str__(self):
+        string = ''
+        for idx, value in enumerate(self.__cells):
+            string += 'Cell {}: {}\n'.format(idx, value)
+        return string
 
 
 class Cell:
@@ -90,3 +102,6 @@ class Cell:
 
     def read(self):
         return self.__value[0]
+    
+    def __str__(self):
+        return str(self.__value[0])
