@@ -22,6 +22,7 @@ class TensorBuffer():
             pointer
         ):
         key = '{}{}'.format(buffer, pointer)
+        print('Buffer {} {} {}'.format(key, address, value))
         self._buffer[key][address] = value
 
     def read_buffer(
