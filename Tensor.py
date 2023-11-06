@@ -244,8 +244,8 @@ class Tensor(FaultInjector):
     def _init_registers(self):
         for _ in range(self._threads_per_warp):
             self._register_files.append(RegisterFile())
-        for _ in range(self._total_tensor_buffer):
-            self._tensor_buffer.append(TensorBuffer())
+        for idx in range(self._total_tensor_buffer):
+            self._tensor_buffer.append(TensorBuffer(idx))
             self._output_tensor_buffer.append(TensorBuffer())
 
     
