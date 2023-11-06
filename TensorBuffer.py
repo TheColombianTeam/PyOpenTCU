@@ -4,19 +4,35 @@ from FaultInjector import FaultInjector
 
 
 class TensorBuffer:
-    def __init__(self, id=0):
+    def __init__(self, id=0, fault_id=None):
         config_parameters = config()["DEFAULT"]
         self._type: str = config_parameters["type"].lower()
         self.__id = id
         self._buffer = {
-            "A0": Bank(data_width=16, key="{}{}".format(self.__id, "A0")),
-            "A1": Bank(data_width=16, key="{}{}".format(self.__id, "A1")),
-            "B0": Bank(data_width=16, key="{}{}".format(self.__id, "B0")),
-            "B1": Bank(data_width=16, key="{}{}".format(self.__id, "B1")),
-            "C0": Bank(data_width=16, key="{}{}".format(self.__id, "C0")),
-            "C1": Bank(data_width=16, key="{}{}".format(self.__id, "C1")),
-            "CX0": Bank(data_width=16, key="{}{}".format(self.__id, "CX0")),
-            "CX1": Bank(data_width=16, key="{}{}".format(self.__id, "CX1")),
+            "A0": Bank(
+                data_width=16, key="{}{}".format(self.__id, "A0"), fault_id=fault_id
+            ),
+            "A1": Bank(
+                data_width=16, key="{}{}".format(self.__id, "A1"), fault_id=fault_id
+            ),
+            "B0": Bank(
+                data_width=16, key="{}{}".format(self.__id, "B0"), fault_id=fault_id
+            ),
+            "B1": Bank(
+                data_width=16, key="{}{}".format(self.__id, "B1"), fault_id=fault_id
+            ),
+            "C0": Bank(
+                data_width=16, key="{}{}".format(self.__id, "C0"), fault_id=fault_id
+            ),
+            "C1": Bank(
+                data_width=16, key="{}{}".format(self.__id, "C1"), fault_id=fault_id
+            ),
+            "CX0": Bank(
+                data_width=16, key="{}{}".format(self.__id, "CX0"), fault_id=fault_id
+            ),
+            "CX1": Bank(
+                data_width=16, key="{}{}".format(self.__id, "CX1"), fault_id=fault_id
+            ),
         }
 
     def buffer_write(self, buffer, address, value, pointer):
@@ -68,11 +84,11 @@ class TensorBuffer:
 
 
 class Bank:
-    def __init__(self, data_width=32, memory_size=512, key="A0"):
+    def __init__(self, data_width=32, memory_size=512, key="A0", fault_id=None):
         self.__key = key
         self.__memory_size = memory_size
         self.__registers = [
-            Register("{}{}".format(self.__key, id))
+            Register("{}{}".format(self.__key, id), fault_id=fault_id)
             for id in range(self.__memory_size // 128)
         ]
         self.__data_width = data_width
@@ -109,9 +125,12 @@ class Bank:
 
 
 class Register:
-    def __init__(self, id="0"):
+    def __init__(self, id="0", fault_id=None):
         self.__id = id
-        self.__cells = [Cell("{}{}".format(self.__id, id)) for id in range(128 // 16)]
+        self.__cells = [
+            Cell("{}{}".format(self.__id, id), fault_id=fault_id)
+            for id in range(128 // 16)
+        ]
 
     def write(self, address, value):
         self.__cells[address].write(value)
@@ -127,10 +146,13 @@ class Register:
 
 
 class Cell(FaultInjector):
-    def __init__(self, id="0"):
+    def __init__(self, id="0", fault_id=None):
         super().__init__()
+        if not fault_id == None:
+            self.enable_fault(fault_id)
+        config_parameters = config()["DEFAULT"]
+        self._type: str = config_parameters["type"].lower()
         self.__id = id
-        print("Cell {}".format(self.__id))
         self.__value = [None]
 
     def write(self, value):
