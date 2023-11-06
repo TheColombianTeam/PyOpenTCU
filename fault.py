@@ -5,11 +5,11 @@ from FaultInjector import FAULTTARGET, FAULTTYPE
 
 
 TOTAL_THREAD_GROUP = 8
-INPUTS = ['A', 'B', 'C']
+INPUTS = ["A", "B", "C"]
 
 
 def save_file(faults, filename):
-    with open(filename, 'w') as file:
+    with open(filename, "w") as file:
         file.writelines(faults)
 
 
@@ -17,52 +17,57 @@ def exhaustive():
     faults = []
     targets = FAULTTARGET.keys()
     for target in targets:
-        if target == 'BUFFER_INPUTS' or target == 'BUFFER_OUTPUTS':
+        if target == "BUFFER_INPUTS" or target == "BUFFER_OUTPUTS":
             thread_group = 0
             for input in INPUTS:
                 for bit in range(16):
                     for buffer in range(4):
-                        for row in range(4):
-                            for column in range(4):
-                                element = '{}{}{}{}'.format(input, buffer, row, column)
-                                for type in FAULTTYPE.keys():
-                                    fault_temp = '{},{},{},{},{}\n'.format(
-                                    FAULTTARGET[target],
-                                    thread_group,
-                                    element,
-                                    hex(2 ** bit),
-                                    FAULTTYPE[type]
+                        for idx in range(2):
+                            for row in range(4):
+                                for column in range(8):
+                                    element = "{}{}{}{}{}".format(
+                                        buffer, input, idx, row, column
                                     )
-                                    if not fault_temp in faults:
-                                        faults.append(fault_temp)
+                                    for type in FAULTTYPE.keys():
+                                        fault_temp = "{},{},{},{},{}\n".format(
+                                            FAULTTARGET[target],
+                                            thread_group,
+                                            element,
+                                            hex(2**bit),
+                                            FAULTTYPE[type],
+                                        )
+                                        if not fault_temp in faults:
+                                            faults.append(fault_temp)
         else:
             for thread_group in range(TOTAL_THREAD_GROUP):
-                if target == 'INPUT':
+                if target == "INPUT":
                     for input in INPUTS:
                         for row in range(16):
                             for column in range(4):
                                 for bit in range(16):
                                     for type in FAULTTYPE.keys():
-                                        fault_temp = '{},{},{},{},{}\n'.format(
+                                        fault_temp = "{},{},{},{},{}\n".format(
                                             FAULTTARGET[target],
                                             thread_group,
-                                            '{}-{}-{}'.format(input, row, column) if input != 'C' else '{}-{}'.format(input, row),
-                                            hex(2 ** bit),
-                                            FAULTTYPE[type]
+                                            "{}-{}-{}".format(input, row, column)
+                                            if input != "C"
+                                            else "{}-{}".format(input, row),
+                                            hex(2**bit),
+                                            FAULTTYPE[type],
                                         )
                                         if not fault_temp in faults:
                                             faults.append(fault_temp)
-                elif target == 'OUTPUT':
+                elif target == "OUTPUT":
                     for row in range(4):
                         for column in range(4):
                             for bit in range(16):
                                 for type in FAULTTYPE.keys():
-                                    fault_temp = '{},{},{},{},{}\n'.format(
+                                    fault_temp = "{},{},{},{},{}\n".format(
                                         FAULTTARGET[target],
                                         thread_group,
-                                        '{}-{}'.format(row, column),
-                                        hex(2 ** bit),
-                                        FAULTTYPE[type]
+                                        "{}-{}".format(row, column),
+                                        hex(2**bit),
+                                        FAULTTYPE[type],
                                     )
                                     if not fault_temp in faults:
                                         faults.append(fault_temp)
@@ -72,18 +77,20 @@ def exhaustive():
                             for interconnection in range(4):
                                 for bit in range(16):
                                     for type in FAULTTYPE.keys():
-                                        fault_temp = '{},{},{},{},{}\n'.format(
+                                        fault_temp = "{},{},{},{},{}\n".format(
                                             FAULTTARGET[target],
                                             thread_group,
-                                            '{}-{}-{}'.format(row, column, interconnection),
-                                            hex(2 ** bit),
-                                            FAULTTYPE[type]
+                                            "{}-{}-{}".format(
+                                                row, column, interconnection
+                                            ),
+                                            hex(2**bit),
+                                            FAULTTYPE[type],
                                         )
                                         if not fault_temp in faults:
                                             faults.append(fault_temp)
     return faults
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     faults = exhaustive()
-    save_file(faults, 'exhaustive_buffers.csv')
+    save_file(faults, "exhaustive_buffers.csv")
