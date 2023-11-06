@@ -1,32 +1,57 @@
-import numpy as np
+from config import config
+from sfpy import *
 
 
 class TensorBuffer:
     def __init__(self):
+        config_parameters = config()["DEFAULT"]
+        self._type: str = config_parameters["type"].lower()
         self._buffer = {
-            "A0": {},
-            "A1": {},
-            "B0": {},
-            "B1": {},
-            "C0": {},
-            "C1": {},
-            "CX0": {},
-            "CX1": {},
+            "A0": Bank(data_width=16),
+            "A1": Bank(data_width=16),
+            "B0": Bank(data_width=16),
+            "B1": Bank(data_width=16),
+            "C0": Bank(data_width=16),
+            "C1": Bank(data_width=16),
+            "CX0": Bank(data_width=16),
+            "CX1": Bank(data_width=16),
         }
 
     def buffer_write(self, buffer, address, value, pointer):
         key = "{}{}".format(buffer, pointer)
-        print("Buffer {} {} {}".format(key, address, value))
-        self._buffer[key][address] = value
+        value = self.__convert_to_hexa(value)
+        address = address.split("_")[-1]
+        self._buffer[key].write(address, value)
 
     def read_buffer(self, buffer, address, pointer):
         key = "{}{}".format(buffer, pointer)
-        return self._buffer[key][address]
+        address = address.split("_")[-1]
+        read = self._buffer[key].read(address)
+        return self.__convert_from_hexa(read)
 
     def store(self, filename) -> None:
         file = open(filename, "w")
         file.write(self.__str__())
         file.close()
+
+    def __convert_to_hexa(self, value):
+        if self._type == "float16":
+            input_format = Float16(value)
+        else:
+            input_format = Posit16(value)
+        input_bits = input_format.bits
+        hexa_input = hex(input_bits)
+        hexa_input = hexa_input.split("x")[-1]
+        return hexa_input
+
+    def __convert_from_hexa(self, value):
+        if self._type == "float16":
+            input_format = Float16(0.0)
+        else:
+            input_format = Posit16(0.0)
+        value = "0x{}".format(value)
+        value = input_format.from_bits(int(value, 16))
+        return value
 
     def __str__(self):
         info = "***********************************\n"
@@ -69,12 +94,13 @@ class Bank:
         if register > self.__memory_size // 128 or cell > 8:
             raise Exception("Error using the memory element")
         return register, cell, num_cells
-    
+
     def __str__(self):
-        string = ''
+        string = ""
         for idx, register in enumerate(self.__registers):
-            string += 'Buffer {}:\nRegister:\n{}'.format(idx, register)
+            string += "Buffer {}:\nRegister:\n{}".format(idx, register)
         return string
+
 
 class Register:
     def __init__(self):
@@ -85,11 +111,11 @@ class Register:
 
     def read(self, address):
         return self.__cells[address].read()
-    
+
     def __str__(self):
-        string = ''
+        string = ""
         for idx, value in enumerate(self.__cells):
-            string += 'Cell {}: {}\n'.format(idx, value)
+            string += "Cell {}: {}\n".format(idx, value)
         return string
 
 
@@ -102,6 +128,6 @@ class Cell:
 
     def read(self):
         return self.__value[0]
-    
+
     def __str__(self):
         return str(self.__value[0])

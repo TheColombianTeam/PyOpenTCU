@@ -45,12 +45,6 @@ class Tensor(FaultInjector):
             debug_print('======>>> executing instruction: {}'.format(instruction))
             for thread_group in range(self._thread_groups):
                 self._fill_tensor_buffer(thread_group, HMMA_INTS[instruction], instruction)
-                for idx, tensor_buffer in enumerate(self._tensor_buffer):
-                    debug_print('Tensor Buffer Data Before {}\n{}'.format(
-                            idx,
-                            tensor_buffer
-                        )
-                    )
                 self._execution(thread_group, instruction)
         for register, register_file in enumerate(self._register_files):
             debug_print('Register File After {}\n{}'.format(
