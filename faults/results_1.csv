@@ -1,0 +1,1 @@
+target_fault,target_thread_group_fault,position_fault,mask_fault,type_fault,position,golden_data,mask_golden,faulty_data,mask_faulty,mask,error_relative,error_abs
