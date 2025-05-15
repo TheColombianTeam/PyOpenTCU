@@ -1,8 +1,8 @@
 from sfpy import *
 
 
-from .config import config
-from .common import debug_print
+from config import config
+from common import debug_print
 
 
 """

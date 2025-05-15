@@ -2,13 +2,13 @@ import os
 import numpy as np
 from sfpy import *
 
-from .common import debug_print, HMMA_INTS, SOURCE_INTS
-from .config import config
+from common import debug_print, HMMA_INTS, SOURCE_INTS
+from config import config
 
 
-from .FaultInjector import FaultInjector
-from .RegisterFile import RegisterFile
-from .TensorBuffer import TensorBuffer
+from FaultInjector import FaultInjector
+from RegisterFile import RegisterFile
+from TensorBuffer import TensorBuffer
 
 
 class Tensor(FaultInjector):
@@ -272,6 +272,8 @@ class Tensor(FaultInjector):
 
         for i in range(4):
             if instruction_number % 2 == 0:
+                debug_print("It's even")
+                debug_print(f'Address from register file {thread_group * 4 + i}')
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[1])
                 address = 'a_{}0'.format(i)
                 debug_print('Values: {}'.format(values))
@@ -410,6 +412,7 @@ class Tensor(FaultInjector):
                     pointer_storage
                 )
             if instruction_number % 2 == 1:
+                debug_print("It's not even")
                 values = self._register_files[thread_group * 4 + i].rf_read(instruction_sources[3])
                 address = 'c_{}0'.format(i)
                 debug_print('Values: {}'.format(values))

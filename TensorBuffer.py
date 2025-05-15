@@ -1,5 +1,6 @@
 import numpy as np
 
+from common import debug_print
 
 class TensorBuffer():
     def __init__(self):
@@ -22,6 +23,7 @@ class TensorBuffer():
             pointer
         ):
         key = '{}{}'.format(buffer, pointer)
+        debug_print(f"Key {key} address {address} value {value}")
         self._buffer[key][address] = value
 
     def read_buffer(

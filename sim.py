@@ -180,6 +180,16 @@ def relative_error(real, value):
 
 def abs_error(real, value):
     return (np.abs(value - real))
+
+
+def increment():
+    data = []
+    for row in range(16):
+        temp = []
+        for col in range(16):
+            temp.append(row * 16 + col)
+        data.append(temp)
+    return np.array(data)
       
 
 if __name__ == '__main__':
@@ -188,9 +198,9 @@ if __name__ == '__main__':
     process = args.process
     if process == 'run':
         if idx == None:
-            a = np.random.rand(16, 16)
-            b = np.tril(np.random.rand(16, 16), -1)
-            c = np.random.rand(16, 16)
+            a = increment()
+            b = increment()
+            c = increment()
             golden_simulation(a, b, c)
         else:
             run_simulation(idx)
