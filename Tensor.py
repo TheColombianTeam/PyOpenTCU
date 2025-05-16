@@ -52,6 +52,11 @@ class Tensor(FaultInjector):
                         )
                     )
                 self._execution(thread_group, instruction)
+                for register, register_file in enumerate(self._register_files):
+                    debug_print('Register file After {}\n{}'.format(
+                        register,
+                        register_file
+                    ))
         for register, register_file in enumerate(self._register_files):
             debug_print('Register File After {}\n{}'.format(
                     register,
@@ -210,6 +215,7 @@ class Tensor(FaultInjector):
             source = SOURCE_INTS[0][1:]
             debug_print('Pointers1:\n {}\n'.format(pointer))
             debug_print('Source1:\n {}\n'.format(source))
+            debug_print('Thread id: {}'.format(thread_id))
             self._register_files[thread_id].fill(
                 a, b, c, pointer, source, enable_c
             )
@@ -574,6 +580,7 @@ class Tensor(FaultInjector):
         for i in range(4):
             for j in range(2):
                 data = [W[i][j * 2], W[i][j * 2 + 1]]
+                debug_print(f"Value {data} in {4 * i + j}")
                 self._register_files[thread_group * 4 + i].rf_write(
                     HMMA_INTS[inst][0] + j,
                     data

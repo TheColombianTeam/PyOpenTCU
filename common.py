@@ -1,4 +1,4 @@
-DEBUG = True
+DEBUG = False
 
 HMMA_INTS = [
     [4,22,12,4],

@@ -13,7 +13,6 @@ class RegisterFile():
             address,
             value
         ):
-        debug_print('Address: {}\nValue:{}'.format(address, value))
         self._mem[address] = value
 
     def rf_read(self, address):

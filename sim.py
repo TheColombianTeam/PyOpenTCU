@@ -22,6 +22,9 @@ DIFF_FILE = os.path.join(RESULTS_DIR, 'diff.txt')
 FAULTS_DIR = os.path.join(RESULTS_DIR, 'fault.csv')
 
 
+np.random.seed(10)
+
+
 def save_matrix(a, b, c):
     np.save('faults/a', a)
     np.save('faults/b', b)
@@ -182,15 +185,14 @@ def abs_error(real, value):
     return (np.abs(value - real))
 
 
-def increment():
-    data = []
-    for row in range(16):
-        temp = []
-        for col in range(16):
-            temp.append(row * 16 + col)
-        data.append(temp)
-    return np.array(data)
-      
+def generate_increment_matrix():
+    """Creates a 16x16 matrix with incrementing values from 0 to 255."""
+    return np.array([[row * 16 + col for col in range(16)] for row in range(16)])
+
+
+def generate_random():
+    """Creates a random 16x16 matrix with values from 0 to 1.0"""
+    return np.array([[np.random.random() for col in range(16)] for row in range(16)])
 
 if __name__ == '__main__':
     args = deco_arg()
@@ -198,9 +200,17 @@ if __name__ == '__main__':
     process = args.process
     if process == 'run':
         if idx == None:
-            a = increment()
-            b = increment()
-            c = increment()
+            """
+            a = np.identity(16)
+            b = np.ones([16, 16])
+            c = np.ones([16, 16])
+            a = generate_increment_matrix()
+            b = generate_increment_matrix()
+            c = generate_increment_matrix()
+            """
+            a = generate_random()
+            b = generate_random()
+            c = generate_random()
             golden_simulation(a, b, c)
         else:
             run_simulation(idx)
