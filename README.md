@@ -136,8 +136,6 @@ The following research works have used or cited PyOpenTCU:
 
 To include your work in this list, please submit a pull request with the reference.
 
-To include your work in this list, please submit a pull request with the reference.
-
 Contact
 -------
 For questions, contributions, or collaboration:
