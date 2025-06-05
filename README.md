@@ -3,17 +3,17 @@ PyOpenTCU - Architectural Simulator for GPU Tensor Core Units (TCUs)
 
 Overview
 --------
-PyOpenTCU is an open-source Python-based simulator that models the structural logic and internal organization of Tensor Core Units (TCUs) in GPUs. The tool provides a highly flexible framework for studying permanent hardware faults, evaluating CNN performance on faulty hardware, and designing fault-tolerant architectures.
+PyOpenTCU is an open-source Python-based simulator that models the structural logic and internal organization of Tensor Cores (i.e., Tensor Core Units, TCUs) in GPUs. The tool provides a highly flexible framework for studying the impacts of faults in the structure of the core. Moreover, the tool allows the evaluation of instruction-accurate workloads (CNNs), as well as the exploration, design, and implementation of fault-tolerant architectures for this hardware accelerator. Furthermore, PyOpenTCU supports the development of accurate error models in safety-critical systems such as autonomous robotics and automotive applications.
 
-Inspired from:
+
+The tool implements the architecture and descriptions from:
 - Raihan et al., 2019: https://doi.org/10.1109/ISPASS.2019.00016
 - Boswell et al., 2019: https://patents.google.com/patent/US10338919B2/en
 
-PyOpenTCU supports the development of accurate error models in safety-critical systems such as autonomous robotics and automotive applications.
 
 What is a TCU?
 --------------
-Modern GPUs integrate in-chip accelerators to boost machine learning performance. These accelerators, known as matrix core processing units or TCUs, perform matrix-matrix operations using a 4x4 array of dot-product units (DPUs). Each TCU can compute 16 multiply-and-add (MaA) operations per cycle on 4x4 matrix segments (A, B, and C matrices), enabling efficient MxM matrix computations.
+Modern CPUs and GPUs integrate in-chip accelerators to boost machine learning performance. These accelerators, known as Matrix Core processing units, Tensor Cores, or TCUs, perform fine-grain matrix-matrix operations by exploiting arrays of Dot-Product Units (DPUs), e.g., 4x4 array. In a 4x4 configuration, a TCU can compute 16 Multiply-and-Add (MaA) operations per cycle on 4x4 matrix segments (A, B, and C matrices), enabling efficient MxM matrix computations. 
 
 TCUs exploit spatial and temporal locality through special registers known as buffers (or near-registers) and through optimized scheduling policies like thread grouping and octets. An octet comprises pairs of thread groups that process data segments efficiently to hide memory latency and improve performance.
 
@@ -131,8 +131,34 @@ The following research works have used or cited PyOpenTCU:
 
 4. **VLSI-SoC 2023: Innovations for Trustworthy Artificial Intelligence**  
    eBook ISBN: 978-3-031-70947-0  
-   Print ISBN: 978-3-031-70946-3  
- 
+   Print ISBN: 978-3-031-70946-3
+
+5. J. Chen et al., *Reliability Assessment of Large DNN Models: Trading Off Performance and Accuracy,*
+   2024 IFIP/IEEE 32nd International Conference on Very Large Scale Integration (VLSI-SoC),
+   pages 1-10, DOI: 10.1109/VLSI-SoC62099.2024.10767814.   
+
+Citation:
+----------------------
+If you want to use PyOpenTCU, please remember to cite:
+
+Robert Limas Sierra, Juan-David Guerrero-Balaguera, Josie E. Rodriguez Condia, Matteo Sonza Reorda,  
+   "Exploring Hardware Fault Impacts on Different Real Number Representations of the Structural Resilience of TCUs in GPUs",  
+   *Electronics*, Vol. 13, No. 3, Article 578, 2024.  
+   URL: https://www.mdpi.com/2079-9292/13/3/578
+
+@Article{PyOpenTCU,
+AUTHOR = {Limas Sierra, Robert and Guerrero-Balaguera, Juan-David and Condia, Josie E. Rodriguez and Sonza Reorda, Matteo},
+TITLE = {Exploring Hardware Fault Impacts on Different Real Number Representations of the Structural Resilience of TCUs in GPUs},
+JOURNAL = {Electronics},
+VOLUME = {13},
+YEAR = {2024},
+NUMBER = {3},
+ARTICLE-NUMBER = {578},
+URL = {https://www.mdpi.com/2079-9292/13/3/578},
+ISSN = {2079-9292},
+DOI = {10.3390/electronics13030578}
+}
+
 
 To include your work in this list, please submit a pull request with the reference.
 
